@@ -12,7 +12,7 @@
   
 # --- Leaf optical properties
 
-rho_leaf  <- 0.10;                    # Leaf reflectance
+rho_leaf  <- 0.10;                   # Leaf reflectance
 tau_leaf <- 0.05;                    # Leaf transmittance
 omega_leaf <- rho_leaf + tau_leaf;   # Leaf scattering coefficient
 Kb <- 0.58;                          # Direct beam extinction coefficient
