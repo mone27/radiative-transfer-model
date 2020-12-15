@@ -1,0 +1,68 @@
+---
+title: "Basic shortwave model exploration"
+output:
+  html_document:
+    df_print: paged
+  html_notebook: default
+  pdf_document: default
+---
+
+
+
+### Import the shortwave model code
+
+```{r}
+source("shortwave.R")
+```
+
+
+
+### Define the parameters and inputs (fixed for now)
+
+```{r}
+params <- list(
+  rho_leaf = 0.10,                    # Leaf reflectance
+  tau_leaf = 0.05,                    # Leaf transmittance
+  Kb = 0.58,                          # Direct beam extinction coefficient
+  Kd = 0.70,                          # Diffuse extinction coefficient
+  beta = 0.54,                        # Upscatter parameter for diffuse radiation
+  beta0 = 0.46,                       # Upscatter parameter for direct beam radiation
+  clump_OMEGA = 0.75,                 # Clumping coefficient 
+  alb_soil_b = 0.1,                   # Soil albedo (direct)  
+  alb_soil_d = 0.1                    # Soil albedo (diffuse)
+)
+
+inputs <- list(
+  sw_sky_b = 0.8,                     # Short wave (sw) direct beam radiation (W m^-2)
+  sw_sky_d = 0.2,                     # Short wave (sw) diffuse radiation (W m^-2)
+  LAI = 6                           # Leaf Area Index
+)
+
+params$omega_leaf = params$rho_leaf + params$tau_leaf   # Leaf scattering coefficient
+```
+
+
+
+### Test run the model
+
+```{r}
+  shortwave_radiation(inputs, params)
+```
+
+### variation of Ic with different LAI
+
+```{r}
+  out <- matrix(ncol=4, nrow=10)
+  for (lai in 1:10){
+    inputs$LAI = lai
+    ic = shortwave_radiation(inputs, params)
+    out[lai,] = c(lai, ic$ic, ic$ic_sun, ic$ic_sha)
+  }
+
+  out <- data.frame(out)
+  colnames(out) <- c("LAI", "Ic", "Ic_sun", "Ic_sha")
+  
+  plot(out$LAI, out$Ic, type='l',
+       xlab= "LAI", ylab = "Shortwave radiation abosrbed by canopy")
+  
+```
