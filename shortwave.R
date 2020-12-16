@@ -1,47 +1,4 @@
-
-params <- list(
-  rho_leaf = 0.10,                    # Leaf reflectance
-  tau_leaf = 0.05,                    # Leaf transmittance
-  Kb = 0.58,                          # Direct beam extinction coefficient
-  Kd = 0.70,                          # Diffuse extinction coefficient
-  beta = 0.54,                        # Upscatter parameter for diffuse radiation
-  beta0 = 0.46,                       # Upscatter parameter for direct beam radiation
-  clump_OMEGA = 0.75,                 # Clumping coefficient 
-  alb_soil_b = 0.1,                   # Soil albedo (direct)  
-  alb_soil_d = 0.1                    # Soil albedo (diffuse)
-)
-
-inputs <- list(
-  sw_sky_b = 0.8,                     # Short wave (sw) direct beam radiation (W m^-2)
-  sw_sky_d = 0.2,                     # Short wave (sw) diffuse radiation (W m^-2)
-  LAI = 6                           # Leaf Area Index
-)
-
-params$omega_leaf = params$rho_leaf + params$tau_leaf   # Leaf scattering coe
-
-
 ## solving for direct/diffuse shortwave using the two stream approximation
-
-
-# defining common terms between direct/diffuse
-# --- Common terms: Eqs. (14.87) - (14.91)
-
-b <- (1 - (1 - params$beta) * params$omega_leaf) * params$Kd
-c <- params$beta * params$omega_leaf * params$Kd
-h <- sqrt(b*b - c*c)
-u <- (h - b - c) / (2 * h)
-v <- (h + b + c) / (2 * h)
-g1 <- ((params$beta0 * params$Kb - b * params$beta0 - c * (1 - params$beta0))
-      * params$omega_leaf * params$Kb * inputs$sw_sky_b / (h^2 - params$Kb^2))
-g2 <- ((1 - params$beta0) * params$Kb + c * params$beta0 + b * (1 - params$beta0)) * params$omega_leaf * params$Kb * inputs$sw_sky_b / (h*h - params$Kb^2)
-
-# --- Exponential functions of leaf area
-
-s1 <- function(x) exp(-h * params$clump_OMEGA * x);
-s2 <- function(x) exp(-params$Kb * params$clump_OMEGA * x)
-
-
-
 
 direct_beam_radiation <- function(inputs, params){
   
@@ -166,9 +123,6 @@ shortwave_radiation <- function(inputs, params){
   return(list(ic = ic, ic_sun = ic_sun, ic_sha = ic_sha))
   
 }
-
-shortwave_radiation(inputs, params)
-
 
 
 

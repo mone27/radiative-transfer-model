@@ -52,8 +52,8 @@ params$omega_leaf = params$rho_leaf + params$tau_leaf   # Leaf scattering coeffi
 ### variation of Ic with different LAI
 
 ```{r}
-  out <- matrix(ncol=4, nrow=10)
-  for (lai in 1:10){
+  out <- matrix(ncol=4, nrow=15)
+  for (lai in 1:15){
     inputs$LAI = lai
     ic = shortwave_radiation(inputs, params)
     out[lai,] = c(lai, ic$ic, ic$ic_sun, ic$ic_sha)
