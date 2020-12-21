@@ -60,8 +60,8 @@ inputs <- list(
   sw_sky_b = 0.8,             # Short wave (sw) direct beam radiation (W m^-2)
   sw_sky_d = 0.2,             # Short wave (sw) diffuse radiation (W m^-2)
   lw_sky = 400,               # Long wave (sw) diffuse radiation (W m^-2)
-  t_leaf = 273.15 + 25,
-  t_soil =273.15 + 20,
+  t_leaf = 273.15 + 25,       # Canopy temperature (K)
+  t_soil =273.15 + 20,        # Soil temperature (K)
   LAI = 6                     # Leaf Area Index
 )
 longwave_radiation(inputs, params)

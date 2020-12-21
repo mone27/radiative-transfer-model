@@ -5,6 +5,9 @@ output:
   html_document:
     df_print: paged
   pdf_document: default
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
 
 ### Import the shortwave model code
@@ -19,8 +22,8 @@ library(tidyverse)
 
 ```{r}
 params <- list(
-  rho_leaf = 0.10,                    # Leaf reflectance
-  tau_leaf = 0.05,                    # Leaf transmittance
+  rho_leaf = 0.057,                    # Leaf reflectance
+  tau_leaf = 0.048,                    # Leaf transmittance
   Kb = 0.58,                          # Direct beam extinction coefficient
   Kd = 0.70,                          # Diffuse extinction coefficient
   beta = 0.54,                        # Upscatter parameter for diffuse radiation
@@ -28,9 +31,17 @@ params <- list(
   clump_OMEGA = 0.75,                 # Clumping coefficient 
   alb_soil_b = 0.1,                   # Soil albedo (direct)  
   alb_soil_d = 0.1,                   # Soil albedo (diffuse)
-  em_leaf = .98,                      # Emissivity leaves
+  em_leaf = .97,                      # Emissivity leaves
   em_soil = 1.00,                     # Emissivity soil
-  sigma = 5.67e-08                    # Stefan-Boltzan costant (TODO: Unit)
+  sigma = 5.67e-08,                   # Stefan-Boltzmann constant (TODO: Unit)
+  
+  lat = 51.099,                       # Latitude for Hainich 
+  lon = 10.426,                       # Longitude for Hainich
+  leaf_out = 110,                     # start of leaf out
+  leaf_full = 170,                    # day of full leaves
+  leaf_fall = 280,                    # day of leaf fall
+  leaf_fall_complete = 300,           # day of leaf fall end
+  max_LAI = 5                         # Max LAI in summer
   
 )
 
@@ -46,7 +57,8 @@ inputs <- list(
   lw_sky = 400,               # Long wave (sw) diffuse radiation (W m^-2)
   t_leaf = 273.15 + 25,
   t_soil =273.15 + 20,
-  LAI = 6                     # Leaf Area Index
+  LAI = 6,                    # Leaf Area Index
+  time = as.POSIXct("2020-12-25 12:00:00") # test time
 )
 
 ```
@@ -56,11 +68,12 @@ inputs <- list(
 ```{r}
   shortwave_radiation(inputs, params)
 ```
+
 ### Longwave
+
 ```{r}
   longwave_radiation(inputs, params)
 ```
-
 
 #### Model for direct radiation
 
@@ -76,30 +89,18 @@ diffuse_radiation(inputs, params)
 
 ### variation of Ic with different LAI
 
-
-```{#plot(out$LAI, out$Ic, type='l',}
-  #     xlab= "LAI", ylab = "Shortwave radiation abosrbed by canopy")
-  #lines(out$LAI, out$Ic_sun, col="orange")
-  #legend("topleft",                                       # Add legend to plot
-  #     legend = c("Total radiation", "Sunlit leaves"),
-  #     col = c("black", "orange"),
-  #     lty = 1)
-  
-```
-
 ```{r}
-  out <- matrix(ncol=4, nrow=15)
-  for (lai in 1:15){
-    inputs$LAI = lai
-    ic = shortwave_radiation(inputs, params)
-    out[lai,] = c(lai, ic$ic, ic$ic_sun, ic$ic_sha)
-  }
+out <- matrix(ncol=4, nrow=15)
+for (lai in 1:15){
+  inputs$LAI = lai
+  ic = shortwave_radiation(inputs, params)
+  out[lai,] = c(lai, ic$ic, ic$ic_sun, ic$ic_sha)
+}
+out <- data.frame(out)
+colnames(out) <- c("LAI", "Ic", "Ic_sun", "Ic_sha")
 
-  out <- data.frame(out)
-  colnames(out) <- c("LAI", "Ic", "Ic_sun", "Ic_sha")
-  
-  out %>% tidyr::gather("Radiation_type", "Absorbed_radiation", 2:4) %>% 
-    ggplot(.)+
-    geom_line(aes(x=LAI, y=Absorbed_radiation, color=Radiation_type))
+out %>% tidyr::gather("Radiation_type", "Absorbed_radiation", 2:4) %>%
+  ggplot(.)+
+  geom_line(aes(x=LAI, y=Absorbed_radiation, color=Radiation_type))
+
 ```
-
