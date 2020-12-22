@@ -1,0 +1,34 @@
+---
+title: "R Notebook"
+author: simone
+date: 22/12/20
+output: html_notebook
+---
+
+The code chunk appears:
+```{r}
+source("longwave.R")
+```
+```{r}
+params <- list(
+  Kb = 0.58,                          # Direct beam extinction coefficient
+  Kd = 0.70,                          # Diffuse extinction coefficient
+  em_leaf = .98,                      # Emissivity leaves
+  em_soil = 1.00,                     # Emissivity soil
+  sigma = 5.67e-08                    # Stefan-Boltzan costant ( TODO: Unit)
+)
+
+inputs <- list(
+  lw_sky = 400,               # Long wave (sw) diffuse radiation (W m^-2)
+  t_leaf = 273.15 + 25,       # Canopy temperature (K)
+  t_soil =273.15 + 20,        # Soil temperature (K)
+  LAI = 6                     # Leaf Area Index
+)
+```
+
+```{r}
+longwave_radiation(inputs, params)
+```
+```{r}
+-74 + 27 == 400 - 447
+```
