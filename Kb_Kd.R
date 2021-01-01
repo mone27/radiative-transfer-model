@@ -1,30 +1,50 @@
-diffuse_transmittance <-function(inputs, params){
-  
-        z <- inputs$zenith_angle
-        Kb <- 0.5/cos(z) # extinction coefficient
+library(pracma) # for rad2deg and deg2rad
+# we are assuming a spherical leaves distribution
 
-        zi <- z*0.01745
-        L <-inputs$LAI
+get_Kb <-function(zenith){
+        Kb <- 0.5/cos(zenith) # extinction coefficient
+        return(list(Kb = Kb))
+}
 
 
-        b_ext <- G(zi)/cos(zi)
-     ### We don't need this code for now as we are assuming xl=0 or spherical leaves distribution
-        # in R you cannot create a function in this way G(zi)
-        G(zi) <- fi1+fi2*cos(zi)                  # projection of leaf area
+get_Kd <- function (LAI){
+        G_z <-  0.5
 
-        fi1 <- 0.5-0.633*xl-0.33*xl^2
-        xl <-params$xl                            # ross index
-        fi2 <- 0.877(1-2*fi1)
-        E <- exp(-b_ext*L)
+        # Eq. ??
+        td <-  0
+        for (z in seq(0, pi / 4, pi / 18)){ # make 9 steps from 0 till π/2
+             td <- td + exp( - G_z / cos(z) * LAI)*sin(z)*cos(z)*(pi / 18)
+        }
+        Kd <- -log(2 * td)/LAI
+        return(list(Kd=Kd))
+}
 
-        ##
-     ####  end
+get_B <- function (params) {
+        # Derived from equations 14.81 following the book approximation for sperical distribution
+        Beta <- ( 0.625 * params$rho_leaf +  0.375 * params$tau_leaf ) / (params$rho_leaf + params$tau_leaf)
 
-       # you need to make a loop an sum all you can't sum the numbers from 0 to 9
-        Td <- 2*[sum(1:9)*E*sin(zi)*cos(zi)*zi] # diffuse radiation transmission
+}
 
-        ## square brackets are not valid syntax you need to always use normal brackets
-        Kd <- [-log(Td)/L]                      #effective extinction coefficient
+get_B0 <- function (zenith, params){
+        attach(params)
 
+        ross <- 0
+        phi_1 <- 0.5 - 0.633 * ross - 0.333 * (ross)^2
+        phi_2 <- 0.877(1 - 2 * phi_1 )
+
+        G_mu <- 0.5
+        mu <- cos(deg2rad(zenith))
+
+        # Equation 14.84
+
+        #defining commonly used terms
+        mphi_1 <- mu * phi_1
+        mphi_2 <- mu * phi_2
+
+        # part 1 of the equation a(s) TO BE continuted
+        a_s <- ((omega_leaf / 2) * (G_mu) / (G_mu + mphi_2) *
+                (1 - (mphi_1/(G_mu + mphi_2) * log((G_mu + mphi_1 + mphi_2) / mphi_1))))
+
+        B0 <-  (((Kb + Kb) / Kb) * a_s ) / omega_leaf
 
 }
