@@ -1,12 +1,12 @@
----
-*2021/01/05*
-
 **Start of the journal**
+
+________________
+*2021/01/05*
 
 so far the longwave and shortwave model are working.
 Work in progress for the calculation of the parameters.
 
----
+________________
 *2021/01/06*
 
 If LAI is equal to `0` Kd is `Inf`, so need to find a way to properly deal with it.  
