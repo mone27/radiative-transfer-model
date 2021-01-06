@@ -9,13 +9,15 @@ editor_options:
   markdown: 
     wrap: 72
 ---
+# Model exploration
 
+this is a testing notebook where the various model componets are tested and explored
 ### Import the shortwave model code
 
 ```{r}
-source("shortwave.R")
-source("longwave.R")
-source("parameters.R")
+source("radiative_transfer_model/shortwave.R")
+source("radiative_transfer_model/longwave.R")
+source("radiative_transfer_model/parameters.R")
 library(tidyverse)
 library(readxl)
 ```
@@ -44,7 +46,6 @@ params <- list(
   leaf_fall = 280,                    # day of leaf fall
   leaf_fall_complete = 300,           # day of leaf fall end
   max_LAI = 5                         # Max LAI in summer
-  
 )
 
 params$omega_leaf = params$rho_leaf + params$tau_leaf   # Leaf scattering coefficient
@@ -140,7 +141,7 @@ out %>% tidyr::gather("Radiation_type", "Absorbed_radiation", 2:4) %>%
 
 ```
 ```{r}
-source("parameters.R")
+source("radiative_transfer_model/parameters.R")
 ```
 ```{r}
 (Z <- get_zenith(Sys.time(), params))

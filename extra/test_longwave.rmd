@@ -7,7 +7,7 @@ output: html_notebook
 
 The code chunk appears:
 ```{r}
-source("longwave.R")
+source("../radiative_transfer_model/longwave.R")
 ```
 ```{r}
 params <- list(
