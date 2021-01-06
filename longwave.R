@@ -1,15 +1,15 @@
 ## simplified longwave model
 
-## NEED TO TEST THIS with the Matlab code
 
-longwave_radiation <- function(inputs, params){
+
+longwave_radiation <- function(lw_sky, LAI, t_leaf, t_soil, params){
   ## --
-  lw_soil_emit <- params$em_soil * params$sigma * inputs$t_soil^4
-  lw_leaf_emit <- params$em_leaf * params$sigma  * inputs$t_leaf^4
+  lw_soil_emit <- params$em_soil * params$sigma * t_soil^4
+  lw_leaf_emit <- params$em_leaf * params$sigma  * t_leaf^4
 
   ## equations 14.134
   lw_down_trans <- function(x)
-    inputs$lw_sky * (1 - params$em_leaf * (1-exp(-params$Kd * x)))
+    lw_sky * (1 - params$em_leaf * (1-exp(-params$Kd * x)))
   lw_down_emit <- function(x)
     lw_leaf_emit *(1-exp(-params$Kd * x))
 
@@ -19,20 +19,20 @@ longwave_radiation <- function(inputs, params){
   ## equations 14.135
 
   lw_up_trans <- function(x) {
-    lw_soil_emit * (1 - params$em_leaf * (1-exp(-params$Kd * (inputs$LAI - x))))
+    lw_soil_emit * (1 - params$em_leaf * (1-exp(-params$Kd * (LAI - x))))
   }
 
   lw_up_emit <- function(x)
-    lw_leaf_emit * (1-exp(-params$Kd * (inputs$LAI - x)))
+    lw_leaf_emit * (1-exp(-params$Kd * (LAI - x)))
 
   lw_up <- function (x) lw_up_trans(x) + lw_up_emit(x)
   ## equation 14.137
-  perc_abs <-  1-exp(-params$Kd * inputs$LAI) # amount absorbed
-  lc <- perc_abs * (params$em_leaf * (inputs$lw_sky + lw_soil_emit)
+  perc_abs <-  1-exp(-params$Kd * LAI) # amount absorbed
+  lc <- perc_abs * (params$em_leaf * (lw_sky + lw_soil_emit)
          - 2 * lw_leaf_emit)
 
   ## equation 14.138
-  lg<- lw_down(inputs$LAI) - lw_soil_emit # Lw adboserbed by the soil
+  lg<- lw_down(LAI) - lw_soil_emit # Lw adboserbed by the soil
 
 
   ### --- Sunlit and shaded leaves ---
@@ -42,15 +42,15 @@ longwave_radiation <- function(inputs, params){
   lc_sun <-
   (
       (
-        (params$em_leaf * (inputs$lw_sky - params$sigma * inputs$t_leaf ^ 4 ) * params$Kd )
+        (params$em_leaf * (lw_sky - params$sigma * t_leaf ^ 4 ) * params$Kd )
         / (params$Kd + params$Kb)
-        * (1 - exp(-(params$Kd + params$Kb) * inputs$LAI))
+        * (1 - exp(-(params$Kd + params$Kb) * LAI))
       )
       +
       (
-        (params$em_leaf *(lw_soil_emit - params$sigma * inputs$t_leaf ^ 4 ) * params$Kd)
+        (params$em_leaf *(lw_soil_emit - params$sigma * t_leaf ^ 4 ) * params$Kd)
         / (params$Kd - params$Kb)
-        * (exp(-params$Kb * inputs$LAI)  - exp(-params$Kd * inputs$LAI))
+        * (exp(-params$Kb * LAI)  - exp(-params$Kd * LAI))
       )
   )
 
@@ -63,6 +63,6 @@ longwave_radiation <- function(inputs, params){
               lc_sun = lc_sun,                # Lw radiation absorbed by the sunlit canopy
               lc_sha = lc_sha,                # Lw radiation absorbed by the shaded canopy
               l_up = lw_up(0),             # Lw emitted into the sky
-              l_down = lw_down(inputs$LAI)   # Lw reaching the soil
+              l_down = lw_down(LAI)           # Lw reaching the soil
   ))
 }
