@@ -15,15 +15,17 @@ editor_options:
 ```{r}
 source("shortwave.R")
 source("longwave.R")
+source("parameters.R")
 library(tidyverse)
+library(readxl)
 ```
 
 ### Define the parameters
 
 ```{r}
 params <- list(
-  rho_leaf = 0.057,                    # Leaf reflectance
-  tau_leaf = 0.048,                    # Leaf transmittance
+  rho_leaf = 0.057,                   # Leaf reflectance
+  tau_leaf = 0.048,                   # Leaf transmittance
   Kb = 0.58,                          # Direct beam extinction coefficient
   Kd = 0.70,                          # Diffuse extinction coefficient
   beta = 0.54,                        # Upscatter parameter for diffuse radiation
@@ -57,12 +59,45 @@ inputs <- list(
   lw_sky = 400,               # Long wave (sw) diffuse radiation (W m^-2)
   t_leaf = 273.15 + 25,
   t_soil =273.15 + 20,
-  LAI = 6,                    # Leaf Area Index
-  time = as.POSIXct("2020-12-25 12:00:00") # test time
+  LAI = 6                    # Leaf Area Index
 )
 
 ```
 
+Read the flux data from the excel file
+```{r}
+flux <- read_excel("../data/FLX_DE-Hai_FLUXNET2015_FULLSET_HH_2016-2018_beta-3_for_class.xlsx", na = "-9999.000") %>%
+    select("Date/Time", SW_IN_F, SW_DIF, SW_OUT, LW_IN_F, LW_OUT) %>%
+    rename(time = "Date/Time")
+```
+
+test run of the model with the flux data
+```{r}
+for (i in 1:1){
+  inputs <- list(
+      sw_sky_b = flux[i,]$SW_IN_F,
+      sw_sky_d = flux[i,]$SW_DIF,
+      lw_sky = flux[i,]$LW_IN_F,
+      t_leaf = 273.15 + 25,
+      t_soil =273.15 + 20,
+      LAI = day_LAI(flux[i,]$time, params)
+  )
+  print(inputs)
+  print(shortwave_radiation(inputs, params))
+  print(longwave_radiation(inputs, params))
+
+}
+```
+```{r}
+flux[]
+```
+
+
+```{r}
+flux[2,]
+```
+
+# Testing th model
 ### Run the model for the whole shortwave
 
 ```{r}
@@ -100,7 +135,26 @@ out <- data.frame(out)
 colnames(out) <- c("LAI", "Ic", "Ic_sun", "Ic_sha")
 
 out %>% tidyr::gather("Radiation_type", "Absorbed_radiation", 2:4) %>%
-  ggplot(.)+
+  ggplot()+
   geom_line(aes(x=LAI, y=Absorbed_radiation, color=Radiation_type))
 
 ```
+```{r}
+source("parameters.R")
+```
+```{r}
+(Z <- get_zenith(Sys.time(), params))
+```
+```{r}
+(LAI <- get_day_LAI(Sys.time(), params))
+```
+```{r}
+get_Kb(Z)
+curve(Vectorize(get_Kb)(x), from = 0, to = 89, xlab='Zenith', ylab = 'Kb')
+```
+
+```{r}
+curve(Vectorize(get_Kd)(x), from = 1, to = 12, xlab='LAI', ylab = 'Kd')
+```
+
+
