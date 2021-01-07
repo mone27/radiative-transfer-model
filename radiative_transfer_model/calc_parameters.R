@@ -2,11 +2,6 @@ library(pracma) # for rad2deg and deg2rad
 library(GeoLight)
 library(lubridate)
 
-#' Solar zenith from datetime and geographical coordinates
-get_zenith <- function(time, params){
-  s <- solar(time)
-  zenith(s, params$lon, params$lat)
-}
 
 #' Use a simple model to get the LAI of the different day of the year.
 #' It has 4 phases:
@@ -19,8 +14,8 @@ get_zenith <- function(time, params){
 #' @param time a datetime object
 #' @param params list with the paramenters
 #' @return LAI LAI value for the day of the year
-get_day_LAI <- function (time, params){
-  yday <- yday(time)
+get_day_LAI <- function (datetime, params){
+  yday <- yday(datetime)
   if (yday < params$leaf_out) { # before leaves are out LAI is 0
     return(0)
   }
@@ -40,17 +35,29 @@ get_day_LAI <- function (time, params){
   }
 }
 
+#' Solar zenith from datetime and geographical coordinates
+get_zenith <- function(time, params){
+  s <- solar(time)
+  Z <- zenith(s, params$lon, params$lat)
+  min(90, Z) # the zenith function returns negative zenith during the night
+}
+
 #'  All the following function assumes a SPHERICAL leaves distribution
 #' Chapter 2.2
 
+
 #' Direct beam extiction coefficient
+#' @param zenith in degrees
+#' @return Kb
 get_Kb <-function(zenith){
         # Eq. 14.29
         Kb <- 0.5/cos(deg2rad(zenith)) # extinction coefficient
-        return(list(Kb = Kb))
+        return(Kb)
 }
 
 #' Diffuse beam extiction coefficient
+#' @param LAI
+#' @return Kd
 get_Kd <- function (LAI){
         G_z <-  0.5
 
@@ -62,18 +69,23 @@ get_Kd <- function (LAI){
 
         # Eq 14.34
         Kd <- -log(2 * td)/LAI
-        return(list(Kd=Kd))
+        return(Kd)
 }
 
 #' Fraction of diffuse light scattered backward
+#' @param params list of rho_lead and and tau_leaf
+#' @return beta
 get_Beta <- function (params) {
         # Derived from equations 14.81 following the book approximation for sperical distribution
         Beta <- ( 0.625 * params$rho_leaf +  0.375 * params$tau_leaf ) / (params$rho_leaf + params$tau_leaf)
-        return(list(Beta = Beta))
+        return(Beta)
 
 }
 
 #' Fraction of direct light scattered backward
+#' @param zenith in degrees
+#' @param params list of Kb, Kd and omega_leaf
+#' @return beta0
 get_Beta_0 <- function (zenith, params){
 
 
@@ -94,6 +106,17 @@ get_Beta_0 <- function (zenith, params){
         a_s <- ((params$omega_leaf / 2) * (G_mu) / (G_mu + mphi_2) *
                 (1 - (mphi_1/(G_mu + mphi_2) * log((G_mu + mphi_1 + mphi_2) / mphi_1))))
 
-        Beta_0 <-  (((Kb + Kb) / Kb) * a_s ) / params$omega_leaf
-        return(list(Beta_0 = Beta_0))
+        Beta_0 <-  (((params$Kb + params$Kd) / params$Kb) * a_s ) / params$omega_leaf
+        return(Beta_0)
+}
+
+#' Updated the given paramenters list by updating with the new values depending on provided time and LAI.
+update_parameters <- function (datetime, LAI, params){
+  zenith <- get_zenith(datetime, params)
+  params$Kb <- get_Kb(zenith)
+  params$Kd <- get_Kd(LAI)
+  params$beta <- get_Beta(params)
+  params$beta0 <- get_Beta_0(zenith, params)
+
+  return(params)
 }

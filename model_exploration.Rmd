@@ -17,7 +17,7 @@ this is a testing notebook where the various model componets are tested and expl
 ```{r}
 source("radiative_transfer_model/shortwave.R")
 source("radiative_transfer_model/longwave.R")
-source("radiative_transfer_model/parameters.R")
+source("radiative_transfer_model/calc_parameters.R")
 library(tidyverse)
 library(readxl)
 ```
@@ -141,7 +141,7 @@ out %>% tidyr::gather("Radiation_type", "Absorbed_radiation", 2:4) %>%
 
 ```
 ```{r}
-source("radiative_transfer_model/parameters.R")
+source("radiative_transfer_model/calc_parameters.R")
 ```
 ```{r}
 (Z <- get_zenith(Sys.time(), params))

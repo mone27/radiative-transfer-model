@@ -1,0 +1,96 @@
+---
+title: "Run model"
+author: simone
+date: 06/01/21
+output: html_notebook
+---
+
+# This notebooks runs the model taking care of input data, calling all submodels and saving output.
+
+
+```{r}
+library(tidyverse)
+library(readxl)
+source("radiative_transfer_model/shortwave.R")
+source("radiative_transfer_model/longwave.R")
+source("radiative_transfer_model/calc_parameters.R")
+```
+
+
+
+
+```{r}
+model_step <- function(flux, params){
+    ## extract variables from flux data
+    datetime <- flux$datetime
+    sw_sky_d <- flux$SW_DIF
+    sw_sky_b <- flux$SW_IN_F - sw_sky_d # SW_IN_F is the total radation direct + diffuse
+    lw_sky <- flux$LW_IN_F
+    t_leaf <- 273.15 + 25 #testing paramenters
+    t_soil <-273.15 + 20
+    LAI <- get_day_LAI(datetime, params)
+
+    # Update the params Kd, Kb, beta, beta0 (possible optimization here)
+    params <- update_parameters(datetime, LAI, params)
+
+    shortwave <- shortwave_radiation(sw_sky_b, sw_sky_d, LAI, params)
+    longwave <- longwave_radiation(lw_sky, LAI, t_leaf, t_soil, params)
+
+    return(data.frame(c(shortwave, longwave)))
+
+}
+```
+
+
+```{r}
+run_model <- function (flux, params) {
+  flux <- na.omit(flux)
+
+  len <- nrow(flux)
+  out <- data.frame(
+        ic = double(len),       # total absorbed shortwave
+        ic_sun = double(len),   # absorbed shortwave from sunlit leaves
+        ic_sha = double(len),   # absorbed shortwave from shaded leaves
+        lc = double(len),       # total absorbed longwave from canopy
+        lg = double(len),       # total absorbed longwave from soil
+        lc_sun = double(len),   # absorbed longwave from sunlit leaves
+        lc_sha = double(len),   # absorbed longwave from shaded leaves
+        l_up = double(len),     # emitted longwave above the canopy
+        l_down = double(len)    # longwave reaching the soil
+  )
+
+  for (i in nrow(flux)){
+    out[i,] <-  model_step(flux[i,], params)
+
+  }
+
+  return(out)
+}
+```
+
+
+loads the flunext data for the Hainich site
+```{r}
+flux_data_path <- "../data/FLX_DE-Hai_FLUXNET2015_FULLSET_HH_2016-2018_beta-3_for_class.xlsx"
+
+flux <- read_excel(flux_data_path, na = "-9999.000") %>%
+    select("Date/Time", SW_IN_F, SW_DIF, SW_OUT, LW_IN_F, LW_OUT) %>% # Columns interesting for radiative model
+    rename(datetime = "Date/Time")
+```
+Loads into params the parameters of the site
+```{r}
+source('parameters_hainich.R')
+```
+```{r}
+(out <-  run_model(flux, params))
+```
+```{r}
+f <-  flux[100,]
+plot(flux$SW_IN_F, type='l')
+```
+```{r}
+flux[1800,]
+```
+```{r}
+model_step(flux[1800,], params)
+```

@@ -15,3 +15,9 @@ Same thing for Kb is the zenith is `90` you get `8.16562e+15` so not too okay.
 `Beta` and `Beta_0` values seems realistic, but they'll need more verification.
 
 Finished to code `"parameters.R"` 
+
+----------------
+*2020/01/07*
+
+Progress with model run. Still need to debug some issues.
+Added docstring and minor file structure refactor

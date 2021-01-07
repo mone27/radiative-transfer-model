@@ -1,7 +1,14 @@
 ## simplified longwave model
 
 
-
+#' Calculate the longwave radiation absorbed by the canopy with sunlit and shaded components
+#' @param lw_sky_d longwave radiation above the canopy in W m-2
+#' @param t_leaf temperature leaves (in Kelvin)
+#' @param t_soil temperature of soil (in Kelvin)
+#' @param LAI Leaf Area Index
+#' @param params list containing teh values of Kd, em_leaf,
+#'
+#' @return list of lc, lg, lc_sun, lc_sha, l_up, l_down
 longwave_radiation <- function(lw_sky, LAI, t_leaf, t_soil, params){
   ## --
   lw_soil_emit <- params$em_soil * params$sigma * t_soil^4
