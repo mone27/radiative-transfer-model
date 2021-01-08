@@ -48,6 +48,10 @@ direct_beam_radiation <- function(sw_sky_b, LAI, params){
   # icb - direct beam flux absorbed by canopy (W/m2); Eq. (14.97)
   
   ic_b <- sw_sky_b * (1 - s2(LAI)) - i_upw_b(0) + i_upw_b(LAI) - i_dwn_b(LAI)
+
+  # ig_b - direct beam flux absorbed by the soil; Eq 14.98
+
+  ig_b <- (1- params$alb_soil_b) * i_dwn_b(LAI) + (1 - params$alb_soil_b) * sw_sky_b * s2(LAI)
   
   # icsunb - direct beam flux absorbed by sunlit canopy (W/m2); Eq. (14.114)
   # icshab - direct beam flux absorbed by shaded canopy (W/m2); Eq. (14.115)
@@ -59,8 +63,11 @@ direct_beam_radiation <- function(sw_sky_b, LAI, params){
   
   ic_sun_b <- (1 - params$omega_leaf) * ((1 - s2(LAI)) * sw_sky_b + params$Kd * (a1b + a2b) * params$clump_OMEGA)
   ic_sha_b <- ic_b - ic_sun_b
+
+  i_up_b <- i_upw_b(0)
+  i_down_b <- i_dwn_b(LAI)
   
-  return(list(ic_b = ic_b, ic_sun_b=ic_sun_b, ic_sha_b=ic_sha_b))
+  return(list(ic_b = ic_b, ic_sun_b=ic_sun_b, ic_sha_b=ic_sha_b, ig_b = ig_b, i_up_b = i_up_b, i_down_b = i_down_b))
 }
 
 #' Calculate the diffuse shortwave radiation absorbed by the canopy with sunlit and shaded components
@@ -68,7 +75,7 @@ direct_beam_radiation <- function(sw_sky_b, LAI, params){
 #' @param LAI Leaf Area Index
 #' @param params list containing teh values of Kd, Kb, omega_leaf, clump_OMEGA, beta, beta0
 #'
-#' @return list of ic, ic_sun, ic_sha
+#' @return list of ic, ic_sun, ic_sha, ig, i_up_d, i_down_d
 diffuse_radiation <- function(sw_sky_d, LAI, params){
 
   # TODO !!! Check that Kb and Kd are used appropiatelu
@@ -107,10 +114,12 @@ diffuse_radiation <- function(sw_sky_d, LAI, params){
   i_dwn_d <- function(x) -n1d * v * s1(x) - n2d * u / s1(x)
   
   
-  # icd - diffuse flux absorbed by canopy (W/m2); Eq. (14.104)
-  
+  #' icd - diffuse flux absorbed by canopy (W/m2); Eq. (14.104)
   ic_d <- sw_sky_d - i_upw_d(0) + i_upw_d(LAI) - i_dwn_d(LAI)
-  
+
+  #' ig_b - diffuse flux absorbed by the soil; Eq 14.105
+  ig_d <- (1- params$alb_soil_b) * i_dwn_d(LAI)
+
   # icsund - diffuse flux absorbed by sunlit canopy (W/m2); Eq. (14.118)
   # icshad - diffuse flux absorbed by shaded canopy (W/m2); Eq. (14.119)
   
@@ -119,8 +128,11 @@ diffuse_radiation <- function(sw_sky_d, LAI, params){
   
   ic_sun_d <- (1 - params$omega_leaf) * params$Kd * (a1d + a2d) * params$clump_OMEGA
   ic_sha_d <- ic_d - ic_sun_d
+
+  i_up_d <-  i_upw_d(0)
+  i_down_d <-  i_dwn_d(LAI)
   
-  return(list(ic_d = ic_d, ic_sun_d = ic_sun_d, ic_sha_d = ic_sha_d))
+  return(list(ic_d = ic_d, ic_sun_d = ic_sun_d, ic_sha_d = ic_sha_d, ig_d = ig_d , i_up_d = i_up_d, i_down_d = i_down_d))
 }
 
 #' Calculate the shortwave radiation absorbed by the canopy with sunlit and shaded components
@@ -138,7 +150,10 @@ shortwave_radiation <- function(sw_sky_b, sw_sky_d, LAI, params){
   ic <- ib$ic_b + id$ic_d
   ic_sun <- ib$ic_sun_b + id$ic_sun_d
   ic_sha <- ib$ic_sha_b + id$ic_sha_d
+  ig <- ib$ig_b + id$ig_d
+  i_up <- ib$i_up_b + id$i_up_d
+  i_down <- ib$i_down_b + id$i_down_d
   
-  return(list(ic = ic, ic_sun = ic_sun, ic_sha = ic_sha))
+  return(list(ic = ic, ic_sun = ic_sun, ic_sha = ic_sha, i_up = i_up, i_down = i_down))
   
 }

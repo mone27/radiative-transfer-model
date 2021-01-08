@@ -21,3 +21,11 @@ Finished to code `"parameters.R"`
 
 Progress with model run. Still need to debug some issues.
 Added docstring and minor file structure refactor
+
+-----------
+*2020/01/08*
+
+Fixed error in model running and added output vars to shortwave (ig, i_up, i_down)
+First evaluation of model results.
+
+Still need to double check that the equation are right (eg. no Kd instead of Kb)

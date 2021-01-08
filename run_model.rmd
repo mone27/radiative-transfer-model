@@ -21,20 +21,14 @@ source("radiative_transfer_model/calc_parameters.R")
 
 ```{r}
 model_step <- function(flux, params){
-    ## extract variables from flux data
-    datetime <- flux$datetime
-    sw_sky_d <- flux$SW_DIF
-    sw_sky_b <- flux$SW_IN_F - sw_sky_d # SW_IN_F is the total radation direct + diffuse
-    lw_sky <- flux$LW_IN_F
-    t_leaf <- 273.15 + 25 #testing paramenters
-    t_soil <-273.15 + 20
-    LAI <- get_day_LAI(datetime, params)
+
+    LAI <- get_day_LAI(flux$datetime, params)
 
     # Update the params Kd, Kb, beta, beta0 (possible optimization here)
-    params <- update_parameters(datetime, LAI, params)
+    params <- update_parameters(flux$datetime, LAI, params)
 
-    shortwave <- shortwave_radiation(sw_sky_b, sw_sky_d, LAI, params)
-    longwave <- longwave_radiation(lw_sky, LAI, t_leaf, t_soil, params)
+    shortwave <- shortwave_radiation(flux$sw_sky_b, flux$sw_sky_d, LAI, params)
+    longwave <- longwave_radiation(flux$lw_sky, LAI, flux$t_leaf, flux$t_soil, params)
 
     return(data.frame(c(shortwave, longwave)))
 
@@ -43,14 +37,17 @@ model_step <- function(flux, params){
 
 
 ```{r}
-run_model <- function (flux, params) {
-  flux <- na.omit(flux)
+model_run <- function (flux, params) {
+  #flux <- na.omit(flux)
 
   len <- nrow(flux)
   out <- data.frame(
         ic = double(len),       # total absorbed shortwave
         ic_sun = double(len),   # absorbed shortwave from sunlit leaves
         ic_sha = double(len),   # absorbed shortwave from shaded leaves
+        ig = double(len),       # shortwave absorbed by the soil
+        i_up = double(len),     # shortwave emitted above the canopy
+        i_down = double(len),   # shortwave reaching the soil
         lc = double(len),       # total absorbed longwave from canopy
         lg = double(len),       # total absorbed longwave from soil
         lc_sun = double(len),   # absorbed longwave from sunlit leaves
@@ -59,7 +56,7 @@ run_model <- function (flux, params) {
         l_down = double(len)    # longwave reaching the soil
   )
 
-  for (i in nrow(flux)){
+  for (i in seq_len(nrow(flux))){
     out[i,] <-  model_step(flux[i,], params)
 
   }
@@ -69,28 +66,58 @@ run_model <- function (flux, params) {
 ```
 
 
-loads the flunext data for the Hainich site
-```{r}
-flux_data_path <- "../data/FLX_DE-Hai_FLUXNET2015_FULLSET_HH_2016-2018_beta-3_for_class.xlsx"
 
-flux <- read_excel(flux_data_path, na = "-9999.000") %>%
-    select("Date/Time", SW_IN_F, SW_DIF, SW_OUT, LW_IN_F, LW_OUT) %>% # Columns interesting for radiative model
-    rename(datetime = "Date/Time")
+```{r}
+
+read_fluxnet_data <- function(path) {
+  read_excel(path, na = "-9999") %>%
+    select("Date/Time", SW_IN_F, SW_DIF, SW_OUT, LW_IN_F, LW_OUT, TS_F_MDS_1, TA_F) %>% # Columns interesting for radiative model
+    rename(datetime = "Date/Time") %>%
+    transmute(datetime = datetime,
+              sw_sky_d = SW_DIF,
+              sw_sky_b = SW_IN_F - sw_sky_d,  # SW_IN_F is the total radation direct + diffuse
+              lw_sky = LW_IN_F,
+              t_leaf = 273.15 + TA_F,       # Temperature of air aproximation for leaf T for now
+              t_soil = 273.15 + TS_F_MDS_1, # Temp soil at 2cm depth
+              sw_out = SW_OUT,
+              lw_out = LW_OUT
+
+    )
+}
 ```
 Loads into params the parameters of the site
 ```{r}
 source('parameters_hainich.R')
+flux_data_path <- "../data/FLX_DE-Hai_FLUXNET2015_FULLSET_HH_2016-2018_beta-3_for_class.xlsx"
+flux <-  read_fluxnet_data(flux_data_path)
+```
+
+```{r}
+plot(flux$SW_IN_F, type='l')
+```
+```{r}
+plot(flux$SW_DIF, type='l')
+```
+```{r}
+ggplot(flux, aes(x=datetime, y=LW_OUT)) + geom_line()
 ```
 ```{r}
 (out <-  run_model(flux, params))
 ```
 ```{r}
-f <-  flux[100,]
-plot(flux$SW_IN_F, type='l')
+flux[10200,]
+get_day_LAI(flux[10200,]$datetime, params)
 ```
 ```{r}
-flux[1800,]
+model_step(flux[10500,], params)
 ```
 ```{r}
-model_step(flux[1800,], params)
+out <- model_run(flux, params)
+```
+
+```{r}
+diff <- tibble( sw = out$i_up - flux$sw_out, lw= out$l_up - flux$lw_out)
+```
+```{r}
+ggplot(diff) + geom_density(aes(x=sw)) + geom_histogram(aes(x=sw))
 ```

@@ -7,7 +7,7 @@ params <- list(
   #Kd = 0.70,                          # Diffuse extinction coefficient
   #beta = 0.54,                        # Upscatter parameter for diffuse radiation
   #beta0 = 0.46,                       # Upscatter parameter for direct beam radiation
-  clump_OMEGA = 0.75,                 # Clumping coefficient
+  clump_OMEGA = 1,                    # Clumping coefficient
   alb_soil_b = 0.1,                   # Soil albedo (direct)
   alb_soil_d = 0.1,                   # Soil albedo (diffuse)
   em_leaf = .97,                      # Emissivity leaves
