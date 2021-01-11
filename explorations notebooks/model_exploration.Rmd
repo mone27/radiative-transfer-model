@@ -15,9 +15,9 @@ this is a testing notebook where the various model componets are tested and expl
 ### Import the shortwave model code
 
 ```{r}
-source("radiative_transfer_model/shortwave.R")
-source("radiative_transfer_model/longwave.R")
-source("radiative_transfer_model/calc_parameters.R")
+source("../radiative_transfer_model/shortwave.R")
+source("../radiative_transfer_model/longwave.R")
+source("../radiative_transfer_model/calc_parameters.R")
 library(tidyverse)
 library(readxl)
 ```
@@ -67,7 +67,7 @@ inputs <- list(
 
 Read the flux data from the excel file
 ```{r}
-flux <- read_excel("../data/FLX_DE-Hai_FLUXNET2015_FULLSET_HH_2016-2018_beta-3_for_class.xlsx", na = "-9999.000") %>%
+flux <- read_excel("../../data/FLX_DE-Hai_FLUXNET2015_FULLSET_HH_2016-2018_beta-3_for_class.xlsx", na = "-9999.000") %>%
     select("Date/Time", SW_IN_F, SW_DIF, SW_OUT, LW_IN_F, LW_OUT) %>%
     rename(time = "Date/Time")
 ```
@@ -141,7 +141,7 @@ out %>% tidyr::gather("Radiation_type", "Absorbed_radiation", 2:4) %>%
 
 ```
 ```{r}
-source("radiative_transfer_model/calc_parameters.R")
+source("../radiative_transfer_model/calc_parameters.R")
 ```
 ```{r}
 (Z <- get_zenith(Sys.time(), params))

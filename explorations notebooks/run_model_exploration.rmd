@@ -11,9 +11,9 @@ output: html_notebook
 ```{r}
 library(tidyverse)
 library(readxl)
-source("radiative_transfer_model/shortwave.R")
-source("radiative_transfer_model/longwave.R")
-source("radiative_transfer_model/calc_parameters.R")
+source("../radiative_transfer_model/shortwave.R")
+source("../radiative_transfer_model/longwave.R")
+source("../radiative_transfer_model/calc_parameters.R")
 ```
 
 
@@ -80,7 +80,7 @@ read_fluxnet_data <- function(path) {
     rename(datetime = "Date/Time") %>%
     transmute(datetime = datetime,
               sw_sky_d = SW_DIF,
-              sw_sky_b = SW_IN_F - sw_sky_d,  # SW_IN_F is the total radation direct + diffuse
+              sw_sky_b = SW_IN_F - sw_sky_d,  # SW_IN_F is the total radiation direct + diffuse
               lw_sky = LW_IN_F,
               t_leaf = 273.15 + TA_F,       # Temperature of air aproximation for leaf T for now
               t_soil = 273.15 + TS_F_MDS_1, # Temp soil at 2cm depth
@@ -127,6 +127,9 @@ out <- model_run(t_flux, params)
 ```{r}
 str(out)
 ```
+```{r}
+save(out, file= "../model_output_11_gen_2021_14_20.Rdata")
+```
 
 ```{r}
 diff <- tibble( sw = out$i_up - t_flux$sw_out, lw= out$l_up - t_flux$lw_out)
@@ -142,6 +145,17 @@ ggplot(diff ,na.rm =T) + geom_histogram(aes(x=sw, y=..density..))  + geom_densit
 ggplot() + geom_point(aes(x=out$i_up, y=t_flux$sw_out)) + geom_abline(intercept = 0, slope = 1, color="red")
 ```
 ```{r}
+sum(out$i_up<10, na.rm = T)
+```
+```{r}
+sum(!is.na(out$i_up))
+```
+```{r}
+ggplot(t_flux, aes(x=datetime)) +
+  geom_line(aes(y=sw_out), color='green') +
+  geom_line(aes(y=out$i_up), color="red") # + geom_line(aes(y=diff$sw))
+```
+```{r}
 model <- lm(out$i_up ~ t_flux$sw_out)
 summary(model)
 ```
@@ -153,5 +167,43 @@ ggplot(diff ,na.rm =T) + geom_histogram(aes(x=lw))
 ggplot() + geom_point(aes(x=out$l_up, y=t_flux$lw_out))  + geom_abline(intercept = 0, slope = 1, color="red")
 ```
 ```{r}
+ggplot(t_flux, aes(x=datetime)) +
+  geom_line(aes(y=lw_out), color='green') +
+  geom_line(aes(y=out$l_up), color="red") # + geom_line(aes(y=diff$sw))
+```
+```{r}
 lm(out$l_up ~ t_flux$lw_out)
+```
+```{r}
+LAI <- 1:10
+ic <- c()
+for (l in LAI){
+
+  par <- update_parameters(as.Date("2020-08-15 12:00"), l, params)
+  ic <- c(ic, shortwave_radiation(100, 50 , LAI, par))
+}
+
+```
+
+```{r}
+LAI <- 5
+out_sw <- c()
+sw_sky <- seq(1, 500, 10)
+par <- update_parameters(as.Date("2020-08-15 12:00"), LAI, params)
+for (sw in sw_sky){
+  out_sw <- c(out_sw, shortwave_radiation(sw, 50 , LAI, par)$ic)
+}
+```
+```{r}
+out_sw
+```
+```{r}
+plot(sw_sky, out_sw)
+```
+# Testing the new model implementation
+```{r}
+source("radiative_transfer_model.R")
+```
+```{r}
+radiative_transfer_over_input(flux, params)
 ```
