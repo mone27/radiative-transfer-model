@@ -20,7 +20,8 @@ params <- list(
   leaf_full = 170,                    # day of full leaves
   leaf_fall = 280,                    # day of leaf fall
   leaf_fall_complete = 300,           # day of leaf fall end
-  max_LAI = 5                         # Max LAI in summer
+  max_LAI = 5,                         # Max LAI in summer
+  min_LAI = 1
 )
 
 params$omega_leaf = params$rho_leaf + params$tau_leaf   # Leaf scattering coefficient
