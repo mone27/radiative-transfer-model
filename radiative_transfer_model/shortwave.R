@@ -94,10 +94,10 @@ diffuse_radiation <- function(sw_sky_d, LAI, params){
   
   s1 <- function(x) exp(-h * params$clump_OMEGA * x);
   s2 <- function(x) exp(-params$Kb * params$clump_OMEGA * x)
+
   # --- Diffuse solution
   
-  # n1 (Eq. 14.99) and n2 (14.100)
-  
+  # n1d and n2d (Eq. 14.99) and n2 (14.100)
   num <- sw_sky_d * (u + v * params$alb_soil_d) * s1(LAI)
   den1 <- v * (v + u * params$alb_soil_d) / s1(LAI)
   den2 <- u * (u + v * params$alb_soil_d) * s1(LAI)
@@ -107,8 +107,7 @@ diffuse_radiation <- function(sw_sky_d, LAI, params){
   # Scattered diffuse fluxes:
   # iupwd - diffuse flux scattered upward above cumulative LAI (W/m2); Eq. (14.101)
   # idwnd - diffuse flux scattered downward below cumulative LAI (W/m2); Eq. (14.102)
-  # and their derivatives with respect to LAI
-  
+
   i_upw_d <- function(x)  n1d * u * s1(x) + n2d * v / s1(x)
   i_dwn_d <- function(x) -n1d * v * s1(x) - n2d * u / s1(x)
   

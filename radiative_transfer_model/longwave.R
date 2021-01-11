@@ -10,11 +10,11 @@
 #'
 #' @return list of lc, lg, lc_sun, lc_sha, l_up, l_down
 longwave_radiation <- function(lw_sky, LAI, t_leaf, t_soil, params){
-  ## --
+  ## commonly used terms--
   lw_soil_emit <- params$em_soil * params$sigma * t_soil^4
   lw_leaf_emit <- params$em_leaf * params$sigma  * t_leaf^4
 
-  ## equations 14.134
+  ## Equation 14.134
   lw_down_trans <- function(x)
     lw_sky * (1 - params$em_leaf * (1-exp(-params$Kd * x)))
   lw_down_emit <- function(x)
@@ -23,7 +23,7 @@ longwave_radiation <- function(lw_sky, LAI, t_leaf, t_soil, params){
   lw_down <- function(LAI) lw_down_emit(LAI) + lw_down_trans(LAI)
 
 
-  ## equations 14.135
+  ## Equation 14.135
 
   lw_up_trans <- function(x) {
     lw_soil_emit * (1 - params$em_leaf * (1-exp(-params$Kd * (LAI - x))))
@@ -33,12 +33,12 @@ longwave_radiation <- function(lw_sky, LAI, t_leaf, t_soil, params){
     lw_leaf_emit * (1-exp(-params$Kd * (LAI - x)))
 
   lw_up <- function (x) lw_up_trans(x) + lw_up_emit(x)
-  ## equation 14.137
+  ## Equation 14.137
   perc_abs <-  1-exp(-params$Kd * LAI) # amount absorbed
   lc <- perc_abs * (params$em_leaf * (lw_sky + lw_soil_emit)
          - 2 * lw_leaf_emit)
 
-  ## equation 14.138
+  ## Equation 14.138
   lg<- lw_down(LAI) - lw_soil_emit # Lw adboserbed by the soil
 
 
@@ -69,7 +69,7 @@ longwave_radiation <- function(lw_sky, LAI, t_leaf, t_soil, params){
               lg = lg,                        # Lw radiation absorbed by the soil
               lc_sun = lc_sun,                # Lw radiation absorbed by the sunlit canopy
               lc_sha = lc_sha,                # Lw radiation absorbed by the shaded canopy
-              lw_up = lw_up(0),             # Lw emitted into the sky
-              lw_down = lw_down(LAI)           # Lw reaching the soil
+              l_up = lw_up(0),             # Lw emitted into the sky
+              l_down = lw_down(LAI)           # Lw reaching the soil
   ))
 }

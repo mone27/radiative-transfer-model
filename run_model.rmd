@@ -20,17 +20,17 @@ source("radiative_transfer_model/calc_parameters.R")
 
 
 ```{r}
-model_step <- function(flux, params){
+model_step <- function(flux, start_params){
 
     LAI <- get_day_LAI(flux$datetime, params)
 
     # Update the params Kd, Kb, beta, beta0 (possible optimization here)
-    params <- update_parameters(flux$datetime, LAI, params)
+    params <- update_parameters(flux$datetime, LAI, start_params)
 
     shortwave <- shortwave_radiation(flux$sw_sky_b, flux$sw_sky_d, LAI, params)
     longwave <- longwave_radiation(flux$lw_sky, LAI, flux$t_leaf, flux$t_soil, params)
 
-    return(data.frame(c(shortwave, longwave)))
+    return(list(tibble(c(shortwave, longwave, list(LAI=LAI))), params))
 
 }
 ```
@@ -41,7 +41,8 @@ model_run <- function (flux, params) {
   #flux <- na.omit(flux)
 
   len <- nrow(flux)
-  out <- data.frame(
+  out <- tibble(
+        LAI = double(len),
         ic = double(len),       # total absorbed shortwave
         ic_sun = double(len),   # absorbed shortwave from sunlit leaves
         ic_sha = double(len),   # absorbed shortwave from shaded leaves
@@ -55,12 +56,17 @@ model_run <- function (flux, params) {
         l_up = double(len),     # emitted longwave above the canopy
         l_down = double(len)    # longwave reaching the soil
   )
-
+  saved_params <- list()
+  print("Running radiative transfer model")
+  pb <- txtProgressBar(1, len, title="Model running")
   for (i in seq_len(nrow(flux))){
-    out[i,] <-  model_step(flux[i,], params)
+    out_step <- model_step(flux[i,], params)
+    out[i,] <-  out_step[[1]]
+    #saved_params[[i]] <- out_step[[2]]
 
+    setTxtProgressBar(pb, i, title="Model running")
   }
-
+     #data.frame(matrix(unlist(saved_params), nrow=length(saved_params), byrow=T)
   return(out)
 }
 ```
@@ -68,7 +74,6 @@ model_run <- function (flux, params) {
 
 
 ```{r}
-
 read_fluxnet_data <- function(path) {
   read_excel(path, na = "-9999") %>%
     select("Date/Time", SW_IN_F, SW_DIF, SW_OUT, LW_IN_F, LW_OUT, TS_F_MDS_1, TA_F) %>% # Columns interesting for radiative model
@@ -93,31 +98,60 @@ flux <-  read_fluxnet_data(flux_data_path)
 ```
 
 ```{r}
-plot(flux$SW_IN_F, type='l')
+plot(flux$sw_sky_d, type='l')
 ```
 ```{r}
 plot(flux$SW_DIF, type='l')
 ```
 ```{r}
 ggplot(flux, aes(x=datetime, y=LW_OUT)) + geom_line()
-```
-```{r}
-(out <-  run_model(flux, params))
+
 ```
 ```{r}
 flux[10200,]
 get_day_LAI(flux[10200,]$datetime, params)
 ```
 ```{r}
-model_step(flux[10500,], params)
+flux[10500,]
 ```
 ```{r}
-out <- model_run(flux, params)
+model_step(flux[10200,], params)[[1]]
+```
+```{r}
+# dataset subset for testing
+t_flux <- na.omit(flux[1:10000, ])
+```
+```{r}
+out <- model_run(t_flux, params)
+```
+```{r}
+str(out)
 ```
 
 ```{r}
-diff <- tibble( sw = out$i_up - flux$sw_out, lw= out$l_up - flux$lw_out)
+diff <- tibble( sw = out$i_up - t_flux$sw_out, lw= out$l_up - t_flux$lw_out)
 ```
 ```{r}
-ggplot(diff) + geom_density(aes(x=sw)) + geom_histogram(aes(x=sw))
+sum(is.na(diff[[1]]))
+```
+
+```{r}
+ggplot(diff ,na.rm =T) + geom_histogram(aes(x=sw, y=..density..))  + geom_density(aes(x=sw), diff, color="red")
+```
+```{r}
+ggplot() + geom_point(aes(x=out$i_up, y=t_flux$sw_out)) + geom_abline(intercept = 0, slope = 1, color="red")
+```
+```{r}
+model <- lm(out$i_up ~ t_flux$sw_out)
+summary(model)
+```
+```{r}
+ggplot(diff ,na.rm =T) + geom_histogram(aes(x=lw))
+```
+
+```{r}
+ggplot() + geom_point(aes(x=out$l_up, y=t_flux$lw_out))  + geom_abline(intercept = 0, slope = 1, color="red")
+```
+```{r}
+lm(out$l_up ~ t_flux$lw_out)
 ```

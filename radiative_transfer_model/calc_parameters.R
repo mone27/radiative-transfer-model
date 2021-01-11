@@ -3,6 +3,8 @@ library(GeoLight)
 library(lubridate)
 
 
+#' Simple model to get current LAI
+#'
 #' Use a simple model to get the LAI of the different day of the year.
 #' It has 4 phases:
 #'  - Winter: from leaf_fall_complete to leaf_out -> LAI = 0
@@ -13,7 +15,7 @@ library(lubridate)
 #'
 #' @param time a datetime object
 #' @param params list with the paramenters
-#' @return LAI LAI value for the day of the year
+#' @return LAI Leaf Area Index value for the day of the year
 get_day_LAI <- function (datetime, params){
   yday <- yday(datetime)
   if (yday < params$leaf_out) { # before leaves are out LAI is 0

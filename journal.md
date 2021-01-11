@@ -29,3 +29,13 @@ Fixed error in model running and added output vars to shortwave (ig, i_up, i_dow
 First evaluation of model results.
 
 Still need to double check that the equation are right (eg. no Kd instead of Kb)
+
+----------------
+*2020/01/09*
+New model run gives way worse results that previous model run, with in theory the same parameters.
+Need to investigate
+
+--------------
+*2020/01/11*
+Fixes minor errors in shortwave.
+Found a negative value in sw_sky_b from the input data. Investigate
