@@ -12,7 +12,7 @@ params <- list(
   alb_soil_d = 0.1,                   # Soil albedo (diffuse)
   em_leaf = .97,                      # Emissivity leaves
   em_soil = 1.00,                     # Emissivity soil
-  sigma = 5.67e-08,                   # Stefan-Boltzmann constant (TODO: Unit)
+  # sigma = 5.67e-08,                   # Stefan-Boltzmann constant (TODO: Unit)
 
   lat = 51.099,                       # Latitude for Hainich
   lon = 10.426,                       # Longitude for Hainich

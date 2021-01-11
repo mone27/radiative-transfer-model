@@ -16,24 +16,24 @@ library(lubridate)
 #' @param time a datetime object
 #' @param params list with the paramenters
 #' @return LAI Leaf Area Index value for the day of the year
-get_day_LAI <- function (datetime, params){
+get_day_LAI <- function (datetime, max_LAI, min_LAI=0, leaf_out, leaf_full, leaf_fall, leaf_fall_complete){
   yday <- yday(datetime)
-  if (yday < params$leaf_out) { # before leaves are out LAI is 0
-    return(0)
+  if (yday < leaf_out) { # before leaves are out LAI is min
+    return(min_LAI)
   }
-  if (yday >= params$leaf_out & yday < params$leaf_full ) {
-    ndays = params$leaf_full - params$leaf_out # n days of the transition
-    return(params$max_LAI * (yday - params$leaf_out) / ndays)
+  if (yday >= leaf_out & yday < leaf_full ) {
+    ndays <-  leaf_full - leaf_out # n days of the transition
+    return((max_LAI - min_LAI) * (yday - leaf_out) / ndays + min_LAI)
   }
-  if (yday >= params$leaf_full & yday < params$leaf_fall ) {
-    return(params$max_LAI)
+  if (yday >= leaf_full & yday < leaf_fall ) {
+    return(max_LAI)
   }
-  if (yday >= params$leaf_fall & yday < params$leaf_fall_complete ) {
-    ndays = params$leaf_fall_complete - params$leaf_fall # n days of the transition
-    return(params$max_LAI * (params$leaf_fall_complete - yday) / ndays)
+  if (yday >= leaf_fall & yday < leaf_fall_complete ) {
+    ndays <-  leaf_fall_complete - leaf_fall # n days of the transition
+    return((max_LAI - min_LAI) * (leaf_fall_complete - yday) / ndays + min_LAI)
   }
-  if (yday >= params$leaf_fall_complete){
-    return(0)
+  if (yday >= leaf_fall_complete){
+    return(min_LAI)
   }
 }
 
