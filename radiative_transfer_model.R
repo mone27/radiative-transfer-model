@@ -71,19 +71,24 @@ radiative_transfer_over_input <- function (input, params) {
   # Initiate an empty dataframe to hold output
   len <- nrow(input)
   out <- tibble(
-        LAI = double(len),
+        # shortwave
         ic = double(len),       # total absorbed shortwave
         ic_sun = double(len),   # absorbed shortwave from sunlit leaves
         ic_sha = double(len),   # absorbed shortwave from shaded leaves
         ig = double(len),       # shortwave absorbed by the soil
         i_up = double(len),     # shortwave emitted above the canopy
         i_down = double(len),   # shortwave reaching the soil
+
+        #longwave
         lc = double(len),       # total absorbed longwave from canopy
         lg = double(len),       # total absorbed longwave from soil
         lc_sun = double(len),   # absorbed longwave from sunlit leaves
         lc_sha = double(len),   # absorbed longwave from shaded leaves
         l_up = double(len),     # emitted longwave above the canopy
         l_down = double(len),    # longwave reaching the soil
+
+        # additional parameters
+        LAI = double(len),
         Kb = double(len),
         kd = double(len),
         beta = double(len),

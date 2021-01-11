@@ -48,3 +48,5 @@ LAI cannot go to 0 in winter, so fixing the issues of Inf Kb and NA outputs
 Found issue in model as `out$ic, out$ic_sun + out$ic_sha)` is not true contrary to the theory.
 Need to check this.
 Also would be a good idea to make some test to check the energy balance of the model
+Fixed issue above the order of output column was wrong, now ic is correct.
+
