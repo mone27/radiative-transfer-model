@@ -39,3 +39,12 @@ Need to investigate
 *2020/01/11*
 Fixes minor errors in shortwave.
 Found a negative value in sw_sky_b from the input data. Investigate
+
+-------------
+*2020/01/11*
+Refactor to have explicit arguments (instead of params) in the submodules functions (found a typo in this way :D)
+LAI cannot go to 0 in winter, so fixing the issues of Inf Kb and NA outputs
+
+Found issue in model as `out$ic, out$ic_sun + out$ic_sha)` is not true contrary to the theory.
+Need to check this.
+Also would be a good idea to make some test to check the energy balance of the model

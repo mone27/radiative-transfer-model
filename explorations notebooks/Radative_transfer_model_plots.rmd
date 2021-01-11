@@ -1,0 +1,85 @@
+---
+title: "Radiative transfer model plots"
+author: Simone Massaro
+date: 11/01/21
+output: html_notebook
+---
+# Load the model and setup
+
+```{r}
+library(readxl)
+library(tidyverse)
+```
+```{r}
+source("radiative_transfer_model.R")
+```
+
+parameters for Hainich (use as default parameters for model)
+```{r}
+source('parameters_hainich.R')
+p <-  params
+```
+
+## LAI over the year
+
+```{r}
+days <- seq.Date(as.Date("2020-01-01"), as.Date("2020-12-31"), by=1)
+LAIs <- Vectorize(get_day_LAI, "datetime")(days,  p$max_LAI, p$min_LAI, p$leaf_out, p$leaf_full, p$leaf_fall, p$leaf_fall_complete)
+
+ggplot() + geom_line(aes(x=days, y=LAIs))
+```
+
+```{r}
+fake_input <- tibble(
+    datetime = as.Date("2020-07-15 12:00"), # Summer day
+    sw_sky_b = 100:800,
+    sw_sky_d = 100,
+    lw_sky = 200,
+    t_soil = 300,
+    t_leaf = 300
+)
+
+out <- radiative_transfer_over_input(fake_input, p)
+
+ggplot() +
+  geom_line(aes(x=fake_input$sw_sky_b, y=out$ic)) +
+  geom_line(aes(x=fake_input$sw_sky_b, y=out$ic_sun)) +
+  geom_line(aes(x=fake_input$sw_sky_b, y=out$ic_sha))
+```
+
+
+```{r}
+near(out$ic, out$ic_sun + out$ic_sha)
+```
+
+
+
+# Test with real data
+
+## Load data
+
+```{r}
+read_fluxnet_data <- function(path) {
+  read_excel(path, na = "-9999") %>%
+    select("Date/Time", SW_IN_F, SW_DIF, SW_OUT, LW_IN_F, LW_OUT, TS_F_MDS_1, TA_F) %>% # Columns interesting for radiative model
+    rename(datetime = "Date/Time") %>%
+    transmute(datetime = datetime,
+              sw_sky_d = SW_DIF,
+              sw_sky_b = SW_IN_F - sw_sky_d,  # SW_IN_F is the total radiation direct + diffuse
+              lw_sky = LW_IN_F,
+              t_leaf = 273.15 + TA_F,       # Temperature of air aproximation for leaf T for now
+              t_soil = 273.15 + TS_F_MDS_1, # Temp soil at 2cm depth
+              sw_out = SW_OUT,
+              lw_out = LW_OUT
+
+    )
+}
+```
+```{r}
+flux_data_path <- "../data/FLX_DE-Hai_FLUXNET2015_FULLSET_HH_2016-2018_beta-3_for_class.xlsx"
+flux <-  read_fluxnet_data(flux_data_path)
+```
+Loads into params the parameters of the site
+```{r}
+source('parameters_hainich.R')
+```

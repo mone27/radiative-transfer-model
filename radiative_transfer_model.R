@@ -91,7 +91,7 @@ radiative_transfer_over_input <- function (input, params) {
   )
 
   print("Running radiative transfer model")
-  pb <- txtProgressBar(1, len)
+  pb <- txtProgressBar(1, max(len, 2)) # quick hack if there is only 1 line in input
   for (i in seq_len(nrow(input))){
     out_step <- radiative_transfer_model_step(input[i,], params)
     out[i,] <-  out_step
