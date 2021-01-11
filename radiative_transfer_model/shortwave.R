@@ -30,7 +30,6 @@ direct_beam_radiation <- function(sw_sky_b, LAI, params){
   # --- Direct beam solution
   # n1 (Eq. 14.92) and n2 (14.93)
   
-  
   num1 <- v * (g1 + g2 * params$alb_soil_b + params$alb_soil_b * sw_sky_b) * s2(LAI)
   num2 <- g2 * (u + v * params$alb_soil_b) * s1(LAI)
   den1 <- v * (v + u * params$alb_soil_b) / s1(LAI)
@@ -120,11 +119,11 @@ diffuse_radiation <- function(sw_sky_d, LAI, params){
   #' ig_b - diffuse flux absorbed by the soil; Eq 14.105
   ig_d <- (1- params$alb_soil_b) * i_dwn_d(LAI)
 
-  # icsund - diffuse flux absorbed by sunlit canopy (W/m2); Eq. (14.118)
-  # icshad - diffuse flux absorbed by shaded canopy (W/m2); Eq. (14.119)
+  # icsund - diffuse flux absorbed by sunlit canopy (W/m2); Eq. (14.120)
+  # icshad - diffuse flux absorbed by shaded canopy (W/m2); Eq. (14.121)
   
-  a1d <-  n1d * u * (1 - s2(LAI)*s1(LAI)) / (params$Kb + h) + n2d * v * (1 - s2(LAI)/s1(LAI)) / (params$Kb - h)
-  a2d <- -n1d * v * (1 - s2(LAI)*s1(LAI)) / (params$Kb + h) - n2d * u * (1 - s2(LAI)/s1(LAI)) / (params$Kb - h)
+  a1d <-  n1d * u * (1 - s2(LAI)*s1(LAI)) / (params$Kd + h) + n2d * v * (1 - s2(LAI)/s1(LAI)) / (params$Kd - h)
+  a2d <- -n1d * v * (1 - s2(LAI)*s1(LAI)) / (params$Kd + h) - n2d * u * (1 - s2(LAI)/s1(LAI)) / (params$Kd - h)
   
   ic_sun_d <- (1 - params$omega_leaf) * params$Kd * (a1d + a2d) * params$clump_OMEGA
   ic_sha_d <- ic_d - ic_sun_d
@@ -154,6 +153,6 @@ shortwave_radiation <- function(sw_sky_b, sw_sky_d, LAI, params){
   i_up <- ib$i_up_b + id$i_up_d
   i_down <- ib$i_down_b + id$i_down_d
   
-  return(list(ic = ic, ic_sun = ic_sun, ic_sha = ic_sha, i_up = i_up, i_down = i_down))
+  return(list(ic = ic, ic_sun = ic_sun, ic_sha = ic_sha, ig=ig, i_up = i_up, i_down = i_down))
   
 }
