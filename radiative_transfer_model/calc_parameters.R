@@ -14,7 +14,13 @@ library(lubridate)
 #' The 4 paramenters (leaf_out...) are the day of the year
 #'
 #' @param time a datetime object
-#' @param params list with the paramenters
+#' @param max_LAI max LAI value in the summer
+#' @param min_LAI min value of LAI during winter, it is an aproximation that consider the total Plant Area Index as LAI
+#' @param leaf_out day leaves start in spring
+#' @param leaf_full day leaves reach max LAI
+#' @param leaf_fall day leaves start to fall
+#' @param leaf_fall_complete day all leaves are fallen
+#' 
 #' @return LAI Leaf Area Index value for the day of the year
 get_day_LAI <- function (datetime, max_LAI, min_LAI=0, leaf_out, leaf_full, leaf_fall, leaf_fall_complete){
   yday <- yday(datetime)
@@ -38,9 +44,15 @@ get_day_LAI <- function (datetime, max_LAI, min_LAI=0, leaf_out, leaf_full, leaf
 }
 
 #' Solar zenith from datetime and geographical coordinates
-get_zenith <- function(time, params){
+#' 
+#' @param time Datetime object with the current time
+#' @param lon Longitude
+#' @param lat Latidute
+#' 
+#' @return solar zenith (in degrees) between 0 and 90 
+get_zenith <- function(time, lon, lat){
   s <- solar(time)
-  Z <- zenith(s, params$lon, params$lat)
+  Z <- zenith(s, lon, lat)
   min(90, Z) # the zenith function returns negative zenith during the night
 }
 
@@ -75,22 +87,26 @@ get_Kd <- function (LAI){
 }
 
 #' Fraction of diffuse light scattered backward
-#' @param params list of rho_lead and and tau_leaf
+#' @param rho_leaf
+#' @param tau_leaf
+#' 
 #' @return beta
-get_Beta <- function (params) {
+get_beta <- function (rho_leaf, tau_leaf) {
         # Derived from equations 14.81 following the book approximation for sperical distribution
-        Beta <- ( 0.625 * params$rho_leaf +  0.375 * params$tau_leaf ) / (params$rho_leaf + params$tau_leaf)
-        return(Beta)
+        beta <- ( 0.625 * rho_leaf +  0.375 * tau_leaf ) / (rho_leaf + tau_leaf)
+        return(beta)
 
 }
 
 #' Fraction of direct light scattered backward
 #' @param zenith in degrees
-#' @param params list of Kb, Kd and omega_leaf
+#' @param Kb
+#' @param Kd
+#' @param omega_leaf
+#'
 #' @return beta0
-get_Beta_0 <- function (zenith, params){
-
-
+get_beta0 <- function (zenith, Kb, Kd, omega_leaf){
+  
         # Eq. 14.31
         ross <- 0
         phi_1 <- 0.5 - 0.633 * ross - 0.333 * (ross)^2
@@ -105,20 +121,11 @@ get_Beta_0 <- function (zenith, params){
         mphi_1 <- mu * phi_1
         mphi_2 <- mu * phi_2
 
-        a_s <- ((params$omega_leaf / 2) * (G_mu) / (G_mu + mphi_2) *
-                (1 - (mphi_1/(G_mu + mphi_2) * log((G_mu + mphi_1 + mphi_2) / mphi_1))))
+        a_s <- (
+          (omega_leaf / 2) * (G_mu) / (G_mu + mphi_2) *
+          (1 - (mphi_1/(G_mu + mphi_2) * log((G_mu + mphi_1 + mphi_2) / mphi_1)))
+        )
 
-        Beta_0 <-  (((params$Kb + params$Kd) / params$Kb) * a_s ) / params$omega_leaf
-        return(Beta_0)
-}
-
-#' Updated the given paramenters list by updating with the new values depending on provided time and LAI.
-update_parameters <- function (datetime, LAI, params){
-  zenith <- get_zenith(datetime, params)
-  params$Kb <- get_Kb(zenith)
-  params$Kd <- get_Kd(LAI)
-  params$beta <- get_Beta(params)
-  params$beta0 <- get_Beta_0(zenith, params)
-
-  return(params)
+        beta_0 <-  (((Kb + Kd) / Kb) * a_s ) / omega_leaf
+        return(beta_0)
 }
