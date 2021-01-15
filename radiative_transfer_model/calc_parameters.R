@@ -129,3 +129,8 @@ get_beta0 <- function (zenith, Kb, Kd, omega_leaf){
         beta_0 <-  (((Kb + Kd) / Kb) * a_s ) / omega_leaf
         return(beta_0)
 }
+
+get_LAI_sunlit <- function(LAI, Kb, clump_OMEGA){
+  # Eq.14.18 integrated as Eq. 14.12
+  LAI_sunlit = (1 - exp(- clump_OMEGA * Kb * LAI) )/ Kb
+}

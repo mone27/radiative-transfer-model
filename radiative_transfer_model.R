@@ -53,8 +53,10 @@ radiative_transfer_model_step <- function(input, p){
                                      p$clump_OMEGA, p$alb_soil_b, p$alb_soil_d)
     longwave <- longwave_radiation(input$lw_sky, LAI, input$t_leaf, input$t_soil, Kb, Kd, p$em_leaf, p$em_soil)
 
+    LAI_sunlit <- get_LAI_sunlit(LAI, p$Kb, p$clump_OMEGA)
+
     # values calculated during model run outputed to give more info about the model
-    interm_params <- list(LAI=LAI, Kb=Kb, Kd=Kd, beta=beta, beta0 = beta0)
+    interm_params <- list(LAI=LAI, LAI_sunlit=LAI_sunlit, Kb=Kb, Kd=Kd, beta=beta, beta0 = beta0, zenith=zenith)
 
     return(data.frame(c(shortwave, longwave, interm_params)))
 
