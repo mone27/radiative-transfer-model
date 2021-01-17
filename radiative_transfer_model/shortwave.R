@@ -12,7 +12,7 @@
 #' @param alb_soil_b
 #'
 #' @return list of ic, ic_sun, ic_sha
-direct_beam_radiation <- function(sw_sky_b, LAI, Kb, Kd, beta, beta0, omega_leaf, clump_OMEGA, alb_soil_b){
+direct_beam_radiation <- function(sw_sky_b, LAI, Kb, Kd, beta, beta0, omega_leaf, clump_OMEGA, alb_soil_b, alb_soil_d){
   
   # defining common terms between direct/diffuse
   # --- Common terms: Eqs. (14.87) - (14.91)
@@ -22,8 +22,9 @@ direct_beam_radiation <- function(sw_sky_b, LAI, Kb, Kd, beta, beta0, omega_leaf
   h <- sqrt(b*b - c*c)
   u <- (h - b - c) / (2 * h)
   v <- (h + b + c) / (2 * h)
-  g1 <- ((beta0 * Kb - b * beta0 - c * (1 - beta0))
-         * omega_leaf * Kb * sw_sky_b / (h^2 - Kb^2))
+  #d = omega(p,ib) * Kb(p) * atmos.swskyb(p,ib) / (h*h - Kb(p)*Kb(p));
+  g1 <- ((beta0 * Kb - b * beta0 - c * (1 - beta0)) *
+         omega_leaf * Kb * sw_sky_b / (h^2 - Kb^2))
   g2 <- ((1 - beta0) * Kb + c * beta0 + b * (1 - beta0)) * omega_leaf * Kb * sw_sky_b / (h*h - Kb^2)
   
   # --- Exponential functions of leaf area
@@ -56,7 +57,7 @@ direct_beam_radiation <- function(sw_sky_b, LAI, Kb, Kd, beta, beta0, omega_leaf
 
   # ig_b - direct beam flux absorbed by the soil; Eq 14.98
 
-  ig_b <- (1- alb_soil_b) * i_dwn_b(LAI) + (1 - alb_soil_b) * sw_sky_b * s2(LAI)
+  ig_b <- ((1- alb_soil_d) * i_dwn_b(LAI)) + ((1 - alb_soil_b) * sw_sky_b * s2(LAI))
   
   # icsunb - direct beam flux absorbed by sunlit canopy (W/m2); Eq. (14.114)
   # icshab - direct beam flux absorbed by shaded canopy (W/m2); Eq. (14.115)
@@ -97,9 +98,9 @@ diffuse_radiation <- function(sw_sky_d, LAI, Kb, Kd, beta, beta0, omega_leaf, cl
   h <- sqrt(b*b - c*c)
   u <- (h - b - c) / (2 * h)
   v <- (h + b + c) / (2 * h) 
-  g1 <- ((beta0 * Kb - b * beta0 - c * (1 - beta0))
-         * omega_leaf * Kb * sw_sky_d / (h^2 - Kb^2))
-  g2 <- ((1 - beta0) * Kb + c * beta0 + b * (1 - beta0)) * omega_leaf * Kb * sw_sky_d / (h*h - Kb^2)
+  #g1 <- ((beta0 * Kb - b * beta0 - c * (1 - beta0))
+  #       * omega_leaf * Kb * sw_sky_d / (h^2 - Kb^2))
+  #g2 <- ((1 - beta0) * Kb + c * beta0 + b * (1 - beta0)) * omega_leaf * Kb * sw_sky_d / (h*h - Kb^2)
   
   # --- Exponential functions of leaf area
   
@@ -127,13 +128,13 @@ diffuse_radiation <- function(sw_sky_d, LAI, Kb, Kd, beta, beta0, omega_leaf, cl
   ic_d <- sw_sky_d - i_upw_d(0) + i_upw_d(LAI) - i_dwn_d(LAI)
 
   #' ig_b - diffuse flux absorbed by the soil; Eq 14.105
-  ig_d <- (1- alb_soil_d) * i_dwn_d(LAI)
+  ig_d <- (1 - alb_soil_d) * i_dwn_d(LAI)
 
   # icsund - diffuse flux absorbed by sunlit canopy (W/m2); Eq. (14.120)
   # icshad - diffuse flux absorbed by shaded canopy (W/m2); Eq. (14.121)
   
-  a1d <-  n1d * u * (1 - s2(LAI)*s1(LAI)) / (Kd + h) + n2d * v * (1 - s2(LAI)/s1(LAI)) / (Kd - h)
-  a2d <- -n1d * v * (1 - s2(LAI)*s1(LAI)) / (Kd + h) - n2d * u * (1 - s2(LAI)/s1(LAI)) / (Kd - h)
+  a1d <-  n1d * u * (1 - s2(LAI)*s1(LAI)) / (Kb + h) + n2d * v * (1 - s2(LAI)/s1(LAI)) / (Kb - h)
+  a2d <- -n1d * v * (1 - s2(LAI)*s1(LAI)) / (Kb + h) - n2d * u * (1 - s2(LAI)/s1(LAI)) / (Kb - h)
   
   ic_sun_d <- (1 - omega_leaf) * Kd * (a1d + a2d) * clump_OMEGA
   ic_sha_d <- ic_d - ic_sun_d
@@ -161,7 +162,7 @@ diffuse_radiation <- function(sw_sky_d, LAI, Kb, Kd, beta, beta0, omega_leaf, cl
 #' @return list of ic, ic_sun, ic_sha
 shortwave_radiation <- function(sw_sky_b, sw_sky_d, LAI, Kb, Kd, beta, beta0, omega_leaf, clump_OMEGA, alb_soil_b, alb_soil_d){
  
-  ib <- direct_beam_radiation(sw_sky_b, LAI, Kb, Kd, beta, beta0, omega_leaf, clump_OMEGA, alb_soil_b)
+  ib <- direct_beam_radiation(sw_sky_b, LAI, Kb, Kd, beta, beta0, omega_leaf, clump_OMEGA, alb_soil_b, alb_soil_d)
   id <- diffuse_radiation(sw_sky_d, LAI, Kb, Kd, beta, beta0, omega_leaf, clump_OMEGA, alb_soil_d)
   
   ic <- ib$ic_b + id$ic_d
