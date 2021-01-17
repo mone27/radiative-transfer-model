@@ -121,12 +121,55 @@ fake_input_2 <- tibble(
 out_2 <- radiative_transfer_over_input_custom_LAI(fake_input_2, p)
 ```
 ```{r}
-ggplot() +
-  geom_line(aes(x=fake_input_2$LAI, y=out_2$ic)) +
-  geom_line(aes(x=fake_input_2$LAI, y=out_2$ic_sun)) +
-  geom_line(aes(x=fake_input_2$LAI, y=out_2$ic_sha))
+out_2 %>%
+        gather("Radiation_type", "Absorbed_radiation", c("ic", "ic_sun", "ic_sha")) %>%
+        ggplot() +
+        geom_line(aes(x=LAI, y=Absorbed_radiation, color=Radiation_type))
+```
+```{r}
+fake_input_3 <- tibble(
+    datetime = as.Date("2020-07-15 12:00"), # Summer day
+    sw_sky_b = 800,
+    sw_sky_d = 100,
+    lw_sky = 200,
+    t_soil = 300,
+    t_leaf = 300,
+)
+out_3 <- radiative_transfer_over_input(fake_input_3, p)
 ```
 
+
+
+```{r}
+out_3 %>% cbind(fake_input_3) %>%
+        gather("Radiation_type", "Radiation", c("lc", "l_up", "l_down", "lw_sky")) %>%
+        ggplot() +
+        geom_line(aes(x=t_leaf, y=Radiation, color=Radiation_type))
+```
+
+```{r}
+fake_input_4 <- tibble(
+    datetime = seq.POSIXt(as.POSIXct("2016-07-21 00:00"), as.POSIXct("2016-07-21 23:00"), by="1 hour"), # Summer day
+    sw_sky_b = 800,
+    sw_sky_d = 100,
+    lw_sky = 200,
+    t_soil = 300,
+    t_leaf = 300,
+)
+out_4 <- radiative_transfer_over_input(fake_input_4, p)
+```
+
+
+
+```{r}
+out_4 %>% cbind(fake_input_4) %>%
+        gather("Radiation_type", "Radiation", c("sw_sky_b", "ic", "i_up")) %>%
+        ggplot() +
+        geom_line(aes(x=datetime, y=Radiation, color=Radiation_type))
+```
+```{r}
+plot(dnorm(1:24, 12, 5) * 10 * 800)
+```
 # Test with real data
 
 ## Load data
@@ -134,16 +177,17 @@ ggplot() +
 ```{r}
 read_fluxnet_data <- function(path) {
   read_excel(path, na = "-9999") %>%
-    select("Date/Time", SW_IN_F, SW_DIF, SW_OUT, LW_IN_F, LW_OUT, TS_F_MDS_1, TA_F) %>% # Columns interesting for radiative model
+    select("Date/Time", SW_IN_F, SW_DIF, SW_OUT, LW_IN_F, LW_OUT, TS_F_MDS_1, TA_F, NIGHT) %>% # Columns interesting for radiative model
     rename(datetime = "Date/Time") %>%
-    transmute(datetime = datetime,
+    transmute(datetime = force_tz(datetime, "Etc/GMT+1" ),
               sw_sky_d = SW_DIF,
               sw_sky_b = SW_IN_F - sw_sky_d,  # SW_IN_F is the total radiation direct + diffuse
               lw_sky = LW_IN_F,
               t_leaf = 273.15 + TA_F,       # Temperature of air aproximation for leaf T for now
               t_soil = 273.15 + TS_F_MDS_1, # Temp soil at 2cm depth
               sw_out = SW_OUT,
-              lw_out = LW_OUT
+              lw_out = LW_OUT,
+              night = NIGHT
 
     )
 }
@@ -152,14 +196,11 @@ read_fluxnet_data <- function(path) {
 flux_data_path <- "../data/FLX_DE-Hai_FLUXNET2015_FULLSET_HH_2016-2018_beta-3_for_class.xlsx"
 flux <-  read_fluxnet_data(flux_data_path)
 ```
-Loads into params the parameters of the site
-```{r}
-source('parameters_hainich.R')
-```
+
 
 Taking the first year of flux data
 ```{r}
-t_data <- flux[flux$datetime < as.Date("2017-01-01"), ]
+t_data <- na.omit(flux[flux$datetime < as.Date("2016-12-30"), ])
 ```
 
 ## Running the model
@@ -170,6 +211,7 @@ out <- radiative_transfer_over_input(t_data, p)
 ```{r}
 ggplot() + geom_point(aes(x=out$i_up, y=t_data$sw_out)) + geom_abline(intercept = 0, slope = 1, color="red")
 ```
+
 ```{r}
 out %>% cbind(t_data) %>% # add the index
         gather("Radiation_type", "Absorbed_radiation", c("ic", "ic_sun", "ic_sha")) %>%
@@ -182,4 +224,171 @@ out %>% cbind(t_data) %>% # add the index
         gather("Model/Real data", "Emitted_radiation", c("ic", "ic_sun", "ic_sha")) %>%
         ggplot() +
         geom_line(aes(x=datetime, y=Absorbed_radiation, color="Model/Real data"))
+```
+Longwave for 1 year
+```{r}
+ggplot() + geom_point(aes(x=out$l_up, y=t_data$lw_out)) + geom_abline(intercept = 0, slope = 1, color="red")
+```
+
+## Summer days
+```{r}
+(sum_days <- flux[flux$datetime > as.Date("2016-06-18")  & flux$datetime < as.Date("2016-06-25"), ])
+```
+```{r}
+plot(sum_days$sw_sky_b, type='l')
+```
+```{r}
+plot(sum_days$sw_out, type='l')
+```
+```{r}
+summer_mod <- radiative_transfer_over_input(sum_days, p)
+```
+```{r}
+plot(summer_mod$i_up, type = 'l')
+```
+```{r}
+plot(sum_days$sw_sky_d, type = 'l')
+```
+
+```{r}
+summer_mod
+```
+```{r}
+summer_mod$zenith
+```
+```{r}
+plot(summer_mod$Kb, type='l')
+```
+```{r}
+plot(sum_days$datetime, sum_days$sw_out, type = 'l', col="red")
+lines(sum_days$datetime, summer_mod$zenith, )
+```
+
+```{r}
+plot(summer_mod$kd, type='l')
+```
+```{r}
+my_zenith <- function(time, lon, lat){
+  s <- solar(time)
+  zenith(s, lon, lat)
+}
+```
+```{r}
+x <- seq.POSIXt(as.POSIXct("2016-06-18"), as.POSIXct("2016-06-25"), by="30 min")
+
+myz <- map_dbl(x, my_zenith, lat = 51.099, lon = 10.426)
+```
+```{r}
+plot(x, myz, type = 'l')
+```
+```{r}
+my_zenith(as.POSIXct("2016-06-18 12:00"),51.099, 10.426)
+```
+```{r}
+times <- seq.POSIXt(as.POSIXct("2016-03-21 00:00"), as.POSIXct("2016-03-21 24:00"), by="1 hour")
+```
+```{r}
+sol <- solar(times)
+zen <- zenith(sol, 10.426, 51.099 )
+```
+```{r}
+plot(zen)
+```
+```{r}
+min(zen)
+```
+```{r}
+max(zen)
+```
+```{r}
+library(oce)
+```
+```{r}
+sunAngle(as.POSIXlt("2021-01-12 12:00:00", tz= "UTC+1"),51.077645, 10.4335784, useRefraction = T)
+```
+```{r}
+sol <- solar(as.POSIXlt("2021-01-12 12:00:00", tz= "UTC+1"))
+(zen <- zenith(sol , 10.4335784, 51.077645))
+```
+
+```{r}
+read_fluxnet_zenith <- function(path) {
+  read_csv(path, ) %>%
+    select("Date/Time", SW_IN_F, SW_DIF, SW_OUT, LW_IN_F, LW_OUT, TS_F_MDS_1, TA_F, NIGHT, zenith) %>% # Columns interesting for radiative model
+    rename(datetime = "Date/Time") %>%
+    transmute(datetime = force_tz(datetime, "Etc/GMT+1" ),
+              sw_sky_d = SW_DIF,
+              sw_sky_b = SW_IN_F - sw_sky_d,  # SW_IN_F is the total radiation direct + diffuse
+              lw_sky = LW_IN_F,
+              t_leaf = 273.15 + TA_F,       # Temperature of air aproximation for leaf T for now
+              t_soil = 273.15 + TS_F_MDS_1, # Temp soil at 2cm depth
+              sw_out = SW_OUT,
+              lw_out = LW_OUT,
+              night = NIGHT,
+              zenith = zenith
+
+    )
+}
+```
+```{r}
+fluxz <-  read_fluxnet_zenith("data/fluxnet_hainich_with_zenith.csv")
+```
+```{r}
+(t_fluxz <- fluxz[fluxz$datetime > as.Date("2016-06-18")  & flux$datetime < as.Date("2016-06-25"), ])
+```
+```{r}
+(outz <- radiative_transfer_over_input(t_fluxz, p))
+
+```
+```{r}
+plot(t_fluxz$datetime, t_fluxz$sw_out, type = 'l', col="red")
+lines(t_fluxz$datetime, t_fluxz$zenith, )
+```
+```{r}
+plot(t_fluxz$datetime, t_fluxz$sw_out, type = 'l', col="green")
+lines(t_fluxz$datetime, outz$i_up, col='red')
+```
+```{r}
+summary(lm(t_fluxz$sw_out~outz$i_up))
+```
+```{r}
+ggplot() + geom_point(aes(x=outz$i_up, y=t_fluxz$sw_out)) + geom_abline(intercept = 0, slope = 1, color="red")
+```
+```{r}
+outz %>% cbind(select(t_fluxz, -zenith)) %>%
+        gather("Radiation_type", "Radiation", c("sw_out", "i_up")) %>%
+        ggplot() +
+        geom_line(aes(x=datetime, y=Radiation, color=Radiation_type))
+```
+```{r}
+outz %>% cbind(select(t_fluxz, -zenith)) %>%
+        gather("Radiation_type", "Radiation", c("sw_sky_b", "sw_out", "i_up")) %>%
+        ggplot() +
+        geom_line(aes(x=datetime, y=Radiation, color=Radiation_type))
+```
+
+```{r}
+p_r1 <- params
+p_r1$rho_leaf <- .8
+(outz_r1 <- radiative_transfer_over_input(t_fluxz, p_r1))
+```
+```{r}
+outz_r1 %>% cbind(select(t_fluxz, -zenith)) %>%
+        gather("Radiation_type", "Radiation", c("sw_out", "i_up")) %>%
+        ggplot() +
+        geom_line(aes(x=datetime, y=Radiation, color=Radiation_type))
+```
+```{r}
+plot(outz$Kb)
+```
+```{r}
+the_time <- as.POSIXct("2016-06-20 12:00")
+
+d <- sum_input[121, ]
+```
+```{r}
+the_out <- radiative_transfer_model_step(d, p)
+```
+```{r}
+the_out
 ```

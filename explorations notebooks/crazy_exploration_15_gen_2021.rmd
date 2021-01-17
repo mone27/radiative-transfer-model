@@ -1,0 +1,214 @@
+---
+title: "R Notebook"
+author: simone
+date: 15/01/21
+output: html_notebook
+---
+
+```{r}
+source("radiative_transfer_model.R")
+source("parameters_hainich.R")
+source('read_data_hainich.R')
+```
+
+
+```{r}
+read_fluxnet_zenith <- function(path) {
+  read_csv(path, ) %>%
+    select("Date/Time", SW_IN_F, SW_DIF, SW_OUT, LW_IN_F, LW_OUT, TS_F_MDS_1, TA_F, NIGHT, zenith) %>% # Columns interesting for radiative model
+    rename(datetime = "Date/Time") %>%
+    transmute(datetime = force_tz(datetime, "Etc/GMT+1" ),
+              sw_sky = SW_IN_F,
+              sw_sky_d = SW_DIF,
+              sw_sky_b = SW_IN_F - sw_sky_d,  # SW_IN_F is the total radiation direct + diffuse
+              lw_sky = LW_IN_F,
+              t_leaf = 273.15 + TA_F,       # Temperature of air aproximation for leaf T for now
+              t_soil = 273.15 + TS_F_MDS_1, # Temp soil at 2cm depth
+              sw_out = SW_OUT,
+              lw_out = LW_OUT,
+              night = NIGHT,
+              zenith = zenith
+
+    )
+}
+```
+```{r}
+fluxz <-  read_fluxnet_zenith("data/fluxnet_hainich_with_zenith.csv")
+```
+```{r}
+(sum_days <- fluxz[fluxz$datetime > as.Date("2016-06-18")  & fluxz$datetime < as.Date("2016-06-25"), ])
+```
+```{r}
+myp <- params
+myp$rho_leaf <-  .3
+myp$omega_leaf <- .45
+myp$tau_leaf <- .15
+```
+
+```{r}
+(out <- radiative_transfer_over_input(sum_days_l, myp))
+```
+```{r}
+out %>% cbind(select(sum_days, -zenith, -LAI)) %>%
+        gather("Radiation_type", "Radiation", c("sw_out", "i_up")) %>%
+        ggplot() +
+        geom_line(aes(x=datetime, y=Radiation, color=Radiation_type))
+```
+
+```{r}
+(the_input <- sum_days[121, ])
+```
+```{r}
+the_input <- tibble(
+    datetime= as.POSIXct("2016-06-20 12:00:00"),
+    sw_sky_b = 757,
+    sw_sky_d = 158,
+    lw_sky = 317,
+    t_leaf = 290,
+    t_soil = 285,
+    zenith = 28,
+    LAI = 1,
+)
+the_params <- tibble(
+  rho_leaf = 0.5,                   # Leaf reflectance
+  tau_leaf = 0.1,                   # Leaf transmittance
+  omega_leaf = rho_leaf + tau_leaf,
+  clump_OMEGA = 1,                    # Clumping coefficient
+  alb_soil_b = 0.1,                   # Soil albedo (direct)
+  alb_soil_d = 0.1,                   # Soil albedo (diffuse)
+  em_leaf = .97,                      # Emissivity leaves
+  em_soil = 1.00                     # Emissivity soil
+)
+(the_out <- radiative_transfer_model_step(the_input, the_params))
+```
+```{r}
+print(the_out$i_up)
+print(148)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+out %>% cbind(select(sum_days, -zenith)) %>%
+        gather("Radiation_type", "Radiation", c("LAI", "LAI_sunlit")) %>%
+        ggplot() +
+        geom_line(aes(x=datetime, y=Radiation, color=Radiation_type))
+```
+```{r}
+plot(out$beta0)
+```
+```{r}
+out %>% cbind(select(sum_days, -zenith)) %>%
+        gather("Radiation_type", "Radiation", c("ic_sun", "sw_sky")) %>%
+        ggplot() +
+        geom_line(aes(x=datetime, y=Radiation, color=Radiation_type))
+```
+```{r}
+fluxz$sw
+```
+```{r}
+(vis <- shortwave_radiation(0.8, 0.2, 6, .58 , 1/0.99788, 0.5425, 0.46, 0.15, 1, 0.1, 0.1))
+```
+```{r}
+(nir <- shortwave_radiation(0.8, 0.2, 6, .58116 , 1/0.99788, 0.53643, 0.45834, 0.7, 1, 0.2, 0.2))
+```
+```{r}
+1 - ssw$i_up
+```
+Test model response to variation of Kb
+```{r}
+
+radiative_transfer_model_step_custom_Kb <- function(input, p){
+
+    LAI <- get_day_LAI(input$datetime, p$max_LAI, p$min_LAI, p$leaf_out, p$leaf_full, p$leaf_fall, p$leaf_fall_complete)
+    zenith <- input$zenith
+    #Kb <- get_Kb(zenith)
+    Kb <- input$Kb
+    Kd <- get_Kd(LAI)
+    beta <- get_beta(p$rho_leaf, p$tau_leaf)
+    beta0 <- get_beta0(zenith, Kb, Kd, p$omega_leaf)
+
+    shortwave <- shortwave_radiation(input$sw_sky_b, input$sw_sky_d, LAI, Kb, Kd_2stream, beta, beta0 , p$omega_leaf,
+                                     p$clump_OMEGA, p$alb_soil_b, p$alb_soil_d)
+    longwave <- longwave_radiation(input$lw_sky, LAI, input$t_leaf, input$t_soil, Kb, Kd, p$em_leaf, p$em_soil)
+
+    # values calculated during model run outputed to give more info about the model
+    interm_params <- list(LAI=LAI, Kb=Kb, Kd=Kd, beta=beta, beta0 = beta0)
+
+    return(data.frame(c(shortwave, longwave, interm_params)))
+
+}
+
+radiative_transfer_over_input_custom_LAI <- function (input, params) {
+
+  # Initiate an empty dataframe to hold output
+  len <- nrow(input)
+  out <- tibble(
+        # shortwave
+        ic = double(len),       # total absorbed shortwave
+        ic_sun = double(len),   # absorbed shortwave from sunlit leaves
+        ic_sha = double(len),   # absorbed shortwave from shaded leaves
+        ig = double(len),       # shortwave absorbed by the soil
+        i_up = double(len),     # shortwave emitted above the canopy
+        i_down = double(len),   # shortwave reaching the soil
+
+        #longwave
+        lc = double(len),       # total absorbed longwave from canopy
+        lg = double(len),       # total absorbed longwave from soil
+        lc_sun = double(len),   # absorbed longwave from sunlit leaves
+        lc_sha = double(len),   # absorbed longwave from shaded leaves
+        l_up = double(len),     # emitted longwave above the canopy
+        l_down = double(len),    # longwave reaching the soil
+
+        # additional parameters
+        LAI = double(len),
+        Kb = double(len),
+        kd = double(len),
+        beta = double(len),
+        beta0 = double(len)
+  )
+
+  print("Running radiative transfer model")
+  pb <- txtProgressBar(1, max(len, 2)) # quick hack if there is only 1 line in input
+  for (i in seq_len(nrow(input))){
+    out_step <- radiative_transfer_model_step_custom_Kb(input[i,], params)
+    out[i,] <-  out_step
+
+    setTxtProgressBar(pb, i)
+  }
+
+  return(out)
+}
+fake_input_2 <- tibble(
+    datetime = as.Date("2020-07-15 12:00"), # Summer day
+    sw_sky_b = 800,
+    sw_sky_d = 100,
+    lw_sky = 200,
+    t_soil = 300,
+    t_leaf = 300,
+    Kb = seq(0,5, .1),
+    zenith = 30
+)
+out_2 <- radiative_transfer_over_input_custom_LAI(fake_input_2, params)
+```
+```{r}
+plot(out_2$Kb, out_2$ic)
+```
+```{r}
+shortwave_radiation(800, 100, 5, 0, 0, .54, .45, .15, 1, .1, .1 )
+```
