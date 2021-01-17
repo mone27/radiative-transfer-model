@@ -50,3 +50,10 @@ Need to check this.
 Also would be a good idea to make some test to check the energy balance of the model
 Fixed issue above the order of output column was wrong, now ic is correct.
 
+-----------
+*2020/01/16*
+
+After a couple of crazy days I have compared the code with the matlab one. The ouput is exactly the same.
+If you increase the leaf `rho` to about `0.5` (from `0.05`) and with the `tau` of `0.1` you get sensible results
+ with the shortwave component. This may be okay because the parameters values for the nir are much higher than for visible light.
+However can be a bit strange.
