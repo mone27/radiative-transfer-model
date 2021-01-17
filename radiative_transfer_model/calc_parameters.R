@@ -23,6 +23,7 @@ library(lubridate)
 #' 
 #' @return LAI Leaf Area Index value for the day of the year
 get_day_LAI <- function (datetime, max_LAI, min_LAI=0, leaf_out, leaf_full, leaf_fall, leaf_fall_complete){
+
   yday <- yday(datetime)
   if (yday < leaf_out) { # before leaves are out LAI is min
     return(min_LAI)
@@ -50,11 +51,15 @@ get_day_LAI <- function (datetime, max_LAI, min_LAI=0, leaf_out, leaf_full, leaf
 #' @param lat Latidute
 #' 
 #' @return solar zenith (in degrees) between 0 and 90 
-get_zenith <- function(time, lon, lat){
+get_zenith <- function(time, lat, lon){
+  warning("zenith function is broken. Provide the correct zenith in the input")
   s <- solar(time)
-  Z <- zenith(s, lon, lat)
-  min(90, Z) # the zenith function returns negative zenith during the night
+  Z <- zenith(s, lon, lat) # Here lat and lon are inverted because this function has different parameters
+  Z <- min(90, Z)
+  Z <- 90 - Z
+
 }
+
 
 #'  All the following function assumes a SPHERICAL leaves distribution
 #' Chapter 2.2
@@ -63,9 +68,11 @@ get_zenith <- function(time, lon, lat){
 #' Direct beam extiction coefficient
 #' @param zenith in degrees
 #' @return Kb
-get_Kb <-function(zenith){
+get_Kb <-function(zenith, max_Kb=20){
         # Eq. 14.29
         Kb <- 0.5/cos(deg2rad(zenith)) # extinction coefficient
+        Kb <- min(Kb, max_Kb) # Prevent the Kb to become too large at low sun angles.
+        # The default value of 20 is from the Bonan matlab code script sp_14_03 line 150
         return(Kb)
 }
 
@@ -85,6 +92,20 @@ get_Kd <- function (LAI){
         Kd <- -log(2 * td)/LAI
         return(Kd)
 }
+
+
+get_two_stream_Kd <- function (){
+    # Eq. 14.31
+    ross <- 0.01 # should be zero but if is zero it mess up the computations.
+  # See Bonan matlab code script sp_14_03 line 130
+    phi_1 <- 0.5 - 0.633 * ross - 0.333 * (ross)^2
+    phi_2 <- 0.877 * (1 - 2 * phi_1 )
+  # Eq 14.80
+    Kd <-  1 / (( 1 - phi_1/phi_2 * log((phi_1+phi_2)/phi_1) ) / phi_2)
+    return(Kd)
+}
+
+get_two_stream_Kd()
 
 #' Fraction of diffuse light scattered backward
 #' @param rho_leaf
@@ -131,6 +152,7 @@ get_beta0 <- function (zenith, Kb, Kd, omega_leaf){
 }
 
 get_LAI_sunlit <- function(LAI, Kb, clump_OMEGA){
-  # Eq.14.18 integrated as Eq. 14.12
-  LAI_sunlit = (1 - exp(- clump_OMEGA * Kb * LAI) )/ Kb
+  # Eq.14.18 integrated in the same way of Eq. 14.12 (also line in Bonan Matlab code line script sp_14_03 line 167)
+  LAI_sunlit <-  (1 - exp(- clump_OMEGA * Kb * LAI) )/ Kb
+  return(LAI_sunlit)
 }
