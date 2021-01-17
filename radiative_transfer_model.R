@@ -40,20 +40,34 @@ source("radiative_transfer_model/calc_parameters.R")
 #' @return One row data Dataframe with
 #' TODO document here
 
+# The Kd in the Two Stream model has a different value
+Kd_2stream <- get_two_stream_Kd() # This is a costant value that depends only on the leaf angle distribution
 radiative_transfer_model_step <- function(input, p){
-    LAI <- get_day_LAI(input$datetime, p$max_LAI, p$min_LAI, p$leaf_out, p$leaf_full, p$leaf_fall, p$leaf_fall_complete)
 
-    zenith <- get_zenith(input$datetime, p$lat, p$lon) # should be 15 mins earlier because is a better average value of the half an hour interval
+    if ("LAI" %in% colnames(input)){
+      LAI <- input$LAI
+    }
+    else{
+      LAI <- get_day_LAI(input$datetime, p$max_LAI, p$min_LAI, p$leaf_out, p$leaf_full, p$leaf_fall, p$leaf_fall_complete)
+    }
+
+    if ("zenith" %in% colnames(input)){
+      zenith <- input$zenith
+    }
+    else{
+      zenith <- get_zenith(input$datetime, p$lat, p$lon) # should be 15 mins earlier because is a better average value of the half an hour interval
+    }
+
     Kb <- get_Kb(zenith)
     Kd <- get_Kd(LAI)
     beta <- get_beta(p$rho_leaf, p$tau_leaf)
-    beta0 <- get_beta0(zenith, Kb, Kd, p$omega_leaf)
+    beta0 <- get_beta0(zenith, Kb, Kd_2stream, p$omega_leaf)
 
-    shortwave <- shortwave_radiation(input$sw_sky_b, input$sw_sky_d, LAI, Kd, Kd, beta, beta0 , p$omega_leaf,
+    shortwave <- shortwave_radiation(input$sw_sky_b, input$sw_sky_d, LAI, Kb, Kd_2stream, beta, beta0 , p$omega_leaf,
                                      p$clump_OMEGA, p$alb_soil_b, p$alb_soil_d)
     longwave <- longwave_radiation(input$lw_sky, LAI, input$t_leaf, input$t_soil, Kb, Kd, p$em_leaf, p$em_soil)
 
-    LAI_sunlit <- get_LAI_sunlit(LAI, p$Kb, p$clump_OMEGA)
+    LAI_sunlit <- get_LAI_sunlit(LAI, Kb, p$clump_OMEGA)
 
     # values calculated during model run outputed to give more info about the model
     interm_params <- list(LAI=LAI, LAI_sunlit=LAI_sunlit, Kb=Kb, Kd=Kd, beta=beta, beta0 = beta0, zenith=zenith)
@@ -91,10 +105,12 @@ radiative_transfer_over_input <- function (input, params) {
 
         # additional parameters
         LAI = double(len),
+        LAI_sunlit = double(len),
         Kb = double(len),
-        kd = double(len),
+        Kd = double(len),
         beta = double(len),
-        beta0 = double(len)
+        beta0 = double(len),
+        zenith = double(len)
   )
 
   print("Running radiative transfer model")
