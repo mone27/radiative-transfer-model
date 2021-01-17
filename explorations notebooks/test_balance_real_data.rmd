@@ -1,0 +1,42 @@
+---
+title: "R Notebook"
+author: simone
+date: 15/01/21
+output: html_notebook
+---
+
+```{r}
+source("radiative_transfer_model.R")
+source("parameters_hainich.R")
+source('read_data_hainich.R')
+```
+
+
+```{r}
+flux_data_path <- "../data/FLX_DE-Hai_FLUXNET2015_FULLSET_HH_2016-2018_beta-3_for_class.xlsx"
+flux <-  read_fluxnet_data(flux_data_path)
+```
+```{r}
+out <- radiative_transfer_over_input(flux[1:10000,], params )
+```
+
+#Check the balance using `near` from `tidyverse` instead of `==` because of double precision errors
+
+Sunlit and shaded must sum up
+```{r}
+all(near(out$ic, out$ic_sun + out$ic_sha))
+```
+
+```{r}
+all(near(out$lc, out$lc_sun + out$lc_sha))
+```
+
+The net radiation must be the same of the absorbed one
+
+```{r}
+all(near(out$ic + out$ig, flux[1:10000,]$sw_sky_b + flux[1:10000,]$sw_sky_d - out$i_up))
+```
+
+```{r}
+all(near(out$lc + out$lg, flux[1:10000,]$lw_sky - out$l_up))
+```
