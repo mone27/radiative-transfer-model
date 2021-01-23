@@ -11,7 +11,7 @@
 #' @param em_soil
 #'
 #' @return list of lc, lg, lc_sun, lc_sha, l_up, l_down
-longwave_radiation <- function(lw_sky, LAI, t_leaf, t_soil, Kb, Kd, em_leaf, em_soil){
+longwave_radiation <- function(lw_sky, t_leaf, t_soil,  LAI, Kb, Kd, em_leaf, em_soil){
   ## commonly used terms--
   sigma <- 5.67e-08   # Stefan-Boltzmann constant TODO: Unit, check that is a good place for a costant definition 
   
