@@ -5,14 +5,14 @@ date: 15/01/21
 output: html_notebook
 ---
 
-```{r}
+```{r, results='hide'}
 source("radiative_transfer_model.R")
 source("parameters_hainich.R")
 source('read_data_hainich.R')
 ```
 
 
-```{r}
+```{r, results='hide'}
 read_fluxnet_zenith <- function(path) {
   read_csv(path, ) %>%
     select("Date/Time", SW_IN_F, SW_DIF, SW_OUT, LW_IN_F, LW_OUT, TS_F_MDS_1, TA_F, NIGHT, zenith) %>% # Columns interesting for radiative model
@@ -211,4 +211,54 @@ plot(out_2$Kb, out_2$ic)
 ```
 ```{r}
 shortwave_radiation(800, 100, 5, 0, 0, .54, .45, .15, 1, .1, .1 )
+```
+Test the model behaviour at different rho values
+```{r}
+model_accuracy <- function (params){
+  model_out <- radiative_transfer_over_input(sum_days, params)
+  slope <- coefficients(lm(sum_days$sw_out ~ model_out$i_up, na.action = na.omit))[2]
+  slope
+}
+```
+```{r}
+res <- list()
+rhos <- seq(.4, .5, .02)
+taus <- seq(.05, .3, .02)
+for (i in seq_along(rhos)){
+  for (j in seq_along(taus)){
+    new_p <- params
+    new_p$rho_leaf <- rhos[i]
+    new_p$tau_leaf <- taus[j]
+    new_p$omega_leaf <- new_p$rho_leaf + new_p$tau_leaf
+    res[[i*length(taus)+j]] <- suppressWarnings(c(rhos[i], taus[j], try(model_accuracy(new_p))))
+  }
+
+}
+```
+```{r}
+res_df <- as.data.frame(do.call(rbind, res))
+colnames(res_df) <- c("rho", "tau", "lm_slope")
+```
+
+```{r}
+plot(res_df$rho, res_df$lm_slope)
+abline(h=1)
+```
+```{r}
+plot(res_df$tau, res_df$lm_slope)
+abline(h=1)
+```
+```{r}
+for (i in 1:10){
+  for (j in 1:10){
+    print(i*9+j)
+  }
+}
+```
+```{r}
+new_p$rho_leaf <- .42
+new_p$tau_leaf <- .1
+new_p$omega_leaf <- new_p$rho_leaf + new_p$tau_leaf
+
+plot(sum_days$sw_out, radiative_transfer_over_input(sum_days, new_p)$i_up)
 ```
