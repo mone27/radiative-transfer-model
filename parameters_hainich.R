@@ -1,12 +1,10 @@
 #' Define the parameters for the Hainich site TODO specify origin of each value
-params <- list(
-  rho_leaf = 0.057,                   # Leaf reflectance
-  tau_leaf = 0.048,                   # Leaf transmittance
-  # Now calculated by the model
-  #Kb = 0.58,                          # Direct beam extinction coefficient
-  #Kd = 0.70,                          # Diffuse extinction coefficient
-  #beta = 0.54,                        # Upscatter parameter for diffuse radiation
-  #beta0 = 0.46,                       # Upscatter parameter for direct beam radiation
+params <- tibble(
+  # NB those are test parameters that make the model work. Still need to validate that they make sense
+  rho_leaf = 0.4,                     # Leaf reflectance
+  tau_leaf = 0.1,                     # Leaf transmittance
+  # omega_leaf =  rho_leaf + tau_leaf,  # Leaf scattering coefficient
+
   clump_OMEGA = 1,                    # Clumping coefficient
   alb_soil_b = 0.1,                   # Soil albedo (direct)
   alb_soil_d = 0.1,                   # Soil albedo (diffuse)

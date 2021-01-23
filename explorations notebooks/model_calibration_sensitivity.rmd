@@ -1,0 +1,153 @@
+---
+title: "Radiative transfer model sensitivity and calibration"
+author: simone
+date: 23/01/21
+output: html_notebook
+---
+```{r, message = FALSE}
+source("radiative_transfer_model.R")
+source("parameters_hainich.R")
+source("read_data_hainich.R")
+library(FME)
+```
+```{r}
+flux <- read_fluxnet_zenith("data/fluxnet_hainich_with_zenith.csv")
+```
+```{r}
+tdata <-  flux[8000:8500,]
+```
+```{r}
+shortwave_sens <- function (pars) {
+    # Some sensible fixe values for input parameters
+    pars$sw_sky_b <- 800
+    pars$sw_sky_d <- 100
+    pars$LAI <-  5
+
+    as.data.frame(do.call(shortwave_radiation, pars))
+}
+```
+
+```{r}
+sw_start_pars <-  list(Kb=.57, Kd=1, beta=.54, beta0=.45, omega_leaf=.45, clump_OMEGA=1, alb_soil_b=.1, alb_soil_d=.1)
+
+(sw_sens <- sensFun(shortwave_sens, sw_start_pars, map=NULL))
+```
+```{r}
+View(summary(sw_sens, var=TRUE))
+```
+# Model calibration
+
+```{r}
+#' Cost function for radiative transfer model
+model_cost <- function (params){
+  dfp <- list(
+      em_leaf = .97,                      # Emissivity leaves
+      em_soil = 1.00,                     # Emissivity soil
+
+      lat = 51.099,                       # Latitude for Hainich
+      lon = 10.426,                       # Longitude for Hainich
+      leaf_out = 110,                     # start of leaf out
+      leaf_full = 170,                    # day of full leaves
+      leaf_fall = 280,                    # day of leaf fall
+      leaf_fall_complete = 300,           # day of leaf fall end
+      max_LAI = 5,                         # Max LAI in summer
+      min_LAI = 1)
+
+  params <- c(params, dfp)
+
+  out <- radiative_transfer_over_input(tdata, params) %>%
+    select(i_up, l_up) %>%
+    add_column(datetime=tdata$datetime, .before = T)
+
+  obs <- transmute(tdata, datetime = datetime, i_up = sw_out, l_up = lw_out)
+
+  #for now ignore the lw just as test
+  return(out$i_up - obs$i_up)
+  #cost <- modCost(out, obs, x="datetime")
+  return (cost)
+}
+```
+```{r}
+cal_p <- tibble(
+  # NB those are test parameters that make the model work. Still need to validate that they make sense
+  rho_leaf = 0.4,                     # Leaf reflectance
+  tau_leaf = 0.1,                     # Leaf transmittance
+  # omega_leaf =  rho_leaf + tau_leaf,  # Leaf scattering coefficient
+
+  clump_OMEGA = 1.0,                    # Clumping coefficient
+  alb_soil_b = 0.1,                   # Soil albedo (direct)
+  alb_soil_d = 0.1                  # Soil albedo (diffuse)
+
+)
+```
+```{r}
+fit <- modFit(model_cost, cal_p)
+```
+```{r}
+fit
+```
+```{r}
+model_cost2 <- function (params){
+  dfp <- tibble(
+      em_leaf = .97,                      # Emissivity leaves
+      em_soil = 1.00,                     # Emissivity soil
+
+      lat = 51.099,                       # Latitude for Hainich
+      lon = 10.426,                       # Longitude for Hainich
+      leaf_out = 110,                     # start of leaf out
+      leaf_full = 170,                    # day of full leaves
+      leaf_fall = 280,                    # day of leaf fall
+      leaf_fall_complete = 300,           # day of leaf fall end
+      max_LAI = 5,                         # Max LAI in summer
+      min_LAI = 1)
+
+  params <- c(params, dfp)
+
+  out <- radiative_transfer_over_input(tdata, params) %>%
+    select(i_up, l_up) %>%
+    add_column(datetime=tdata$datetime, .before = T)
+
+  obs <- transmute(tdata, datetime = datetime, i_up = sw_out, l_up = lw_out)
+
+  cost <- modCost(out, obs, x="datetime")
+  return (cost)
+}
+```
+```{r}
+  dfp <- list(
+      em_leaf = .97,                      # Emissivity leaves
+      em_soil = 1.00,                     # Emissivity soil
+
+      lat = 51.099,                       # Latitude for Hainich
+      lon = 10.426,                       # Longitude for Hainich
+      leaf_out = 110,                     # start of leaf out
+      leaf_full = 170,                    # day of full leaves
+      leaf_fall = 280,                    # day of leaf fall
+      leaf_fall_complete = 300,           # day of leaf fall end
+      max_LAI = 5,                         # Max LAI in summer
+      min_LAI = 1)
+
+  fit_par <- c(fir$par, dfp)
+```
+```{r}
+plot(tdata$sw_out, radiative_transfer_over_input(tdata, fit_par)$i_up)
+```
+```{r}
+
+model_to_fit <- function (par) {
+  par <- c(par,   list(
+      em_leaf = .97,                      # Emissivity leaves
+      em_soil = 1.00,                     # Emissivity soil
+
+      lat = 51.099,                       # Latitude for Hainich
+      lon = 10.426,                       # Longitude for Hainich
+      leaf_out = 110,                     # start of leaf out
+      leaf_full = 170,                    # day of full leaves
+      leaf_fall = 280,                    # day of leaf fall
+      leaf_fall_complete = 300,           # day of leaf fall end
+      max_LAI = 5,                         # Max LAI in summer
+      min_LAI = 1))
+  radiative_transfer_over_input(tdata, par)
+}
+nls(model_to_fit, start=cal_p)
+```
