@@ -58,14 +58,16 @@ radiative_transfer_model_step <- function(input, p){
       zenith <- get_zenith(input$datetime, p$lat, p$lon) # should be 15 mins earlier because is a better average value of the half an hour interval
     }
 
+    omega_leaf <- p$rho_leaf + p$tau_leaf
+
     Kb <- get_Kb(zenith)
     Kd <- get_Kd(LAI)
     beta <- get_beta(p$rho_leaf, p$tau_leaf)
-    beta0 <- get_beta0(zenith, Kb, Kd_2stream, p$omega_leaf)
+    beta0 <- get_beta0(zenith, Kb, Kd_2stream, omega_leaf)
 
-    shortwave <- shortwave_radiation(input$sw_sky_b, input$sw_sky_d, LAI, Kb, Kd_2stream, beta, beta0 , p$omega_leaf,
+    shortwave <- shortwave_radiation(input$sw_sky_b, input$sw_sky_d, LAI, Kb, Kd_2stream, beta, beta0 , omega_leaf,
                                      p$clump_OMEGA, p$alb_soil_b, p$alb_soil_d)
-    longwave <- longwave_radiation(input$lw_sky, LAI, input$t_leaf, input$t_soil, Kb, Kd, p$em_leaf, p$em_soil)
+    longwave <- longwave_radiation(input$lw_sky, input$t_leaf, input$t_soil, LAI, Kb, Kd, p$em_leaf, p$em_soil)
 
     LAI_sunlit <- get_LAI_sunlit(LAI, Kb, p$clump_OMEGA)
 

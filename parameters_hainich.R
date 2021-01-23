@@ -10,7 +10,6 @@ params <- tibble(
   alb_soil_d = 0.1,                   # Soil albedo (diffuse)
   em_leaf = .97,                      # Emissivity leaves
   em_soil = 1.00,                     # Emissivity soil
-  # sigma = 5.67e-08,                   # Stefan-Boltzmann constant (TODO: Unit)
 
   lat = 51.099,                       # Latitude for Hainich
   lon = 10.426,                       # Longitude for Hainich
@@ -21,5 +20,3 @@ params <- tibble(
   max_LAI = 5,                         # Max LAI in summer
   min_LAI = 1
 )
-
-params$omega_leaf = params$rho_leaf + params$tau_leaf   # Leaf scattering coefficient
