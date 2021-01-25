@@ -1,5 +1,5 @@
 library(pracma) # for rad2deg and deg2rad
-library(GeoLight)
+library(solartime)
 library(lubridate)
 
 
@@ -52,12 +52,10 @@ get_day_LAI <- function (datetime, max_LAI, min_LAI=0, leaf_out, leaf_full, leaf
 #' 
 #' @return solar zenith (in degrees) between 0 and 90 
 get_zenith <- function(time, lat, lon){
-  warning("zenith function is broken. Provide the correct zenith in the input")
-  s <- solar(time)
-  Z <- zenith(s, lon, lat) # Here lat and lon are inverted because this function has different parameters
-  Z <- min(90, Z)
-  Z <- 90 - Z
-
+  elevation <- computeSunPosition(time, lat, lon)[3]
+  Z <- 90 - rad2deg(elevation)
+  Z <- min(90, Z) # avoid zenith values below horizon
+  return(Z)
 }
 
 
