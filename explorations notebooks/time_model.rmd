@@ -1,0 +1,23 @@
+---
+title: "R Notebook"
+author: simone
+date: 24/01/21
+output: html_notebook
+---
+```{r}
+library(tictoc)
+```
+```{r}
+source("radiative_transfer_model.R")
+source("parameters_hainich.R")
+source('read_data_hainich.R')
+```
+```{r}
+flux <-  read_fluxnet_zenith("data/fluxnet_hainich_with_zenith.csv")
+```
+```{r}
+tic()
+radiative_transfer_over_input(flux, params)
+print("/n")
+toc()
+```

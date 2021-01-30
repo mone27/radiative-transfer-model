@@ -1,0 +1,26 @@
+---
+title: "R Notebook"
+author: simone
+date: 22/12/20
+output: html_notebook
+---
+```{r}
+library(tidyverse)
+library(readxl)
+```
+```{r}
+flux <- read_excel("../../data/FLX_DE-Hai_FLUXNET2015_FULLSET_HH_2016-2018_beta-3_for_class.xlsx", na = "-9999.000")
+```
+```{r}
+colnames(flux)
+```
+```{r}
+flux <- select(flux, c(SW_IN_F, SW_DIF, SW_OUT, LW_IN_F, LW_OUT))
+```
+```{r}
+for (i in 1:100){
+  input = list(
+
+  )
+}
+```
